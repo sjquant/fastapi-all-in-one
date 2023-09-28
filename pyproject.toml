@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = "My FastAPI server template"
+authors = ["sjquant <seonujang92@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.103.1"
+pydantic = "^2.4.2"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "0.0.291"
+black = "23.9.1"
+pytest = "^7.4.2"
+pytest-asyncio = "^0.21.1"
+pytest-env = "^1.0.1"
+pytest-mock = "^3.11.1"
+pytest-alembic = "^0.10.7"
+freezegun = "^1.2.2"
+pyright = "1.1.329"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
