@@ -10,6 +10,11 @@ readme = "README.md"
 python = "^3.11"
 fastapi = "^0.103.1"
 pydantic = "^2.4.2"
+pydantic-settings = "^2.0.3"
+uvicorn = "^0.23.2"
+typer = {extras = ["all"], version = "^0.9.0"}
+sqlalchemy = "^2.0.21"
+asyncpg = "^0.28.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -22,6 +27,9 @@ pytest-mock = "^3.11.1"
 pytest-alembic = "^0.10.7"
 freezegun = "^1.2.2"
 pyright = "1.1.329"
+pytest-cov = "^4.1.0"
+psycopg2-binary = "^2.9.9"
+greenlet = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,0 +1,16 @@
+Dockerfile
+.git
+.gitignore
+.dockerignore
+.python-version
+**/README.md
+.vscode
+**/__pycache__
+**/*.env.*
+.pre-commit-config.yaml
+.ruff_cache
+.pytest_cache
+docker-compose.yaml
+docker-compose.yml
+tests
+
