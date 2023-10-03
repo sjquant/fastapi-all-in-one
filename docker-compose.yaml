@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  database:
+    restart: always
+    container_name: db_base_server
+    image: postgres:15-alpine
+    volumes:
+      - db-volume:/var/lib/postgresql/data
+    ports:
+      - 15432:5432
+    environment:
+      - POSTGRES_DB=db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+
+volumes:
+  db-volume:
