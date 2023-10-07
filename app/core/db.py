@@ -22,7 +22,7 @@ from app.core.config import config
 
 
 class DB:
-    def __init__(self, db_url: str) -> None:
+    def __init__(self, db_url: str):
         self._engine = create_async_engine(
             db_url,
             echo=False,
@@ -68,13 +68,15 @@ class GUID(UUIDTypeDecorator):
     impl = CHAR
     cache_ok = True
 
-    def load_dialect_impl(self, dialect: sa.engine.interfaces.Dialect) -> Any:
+    def load_dialect_impl(self, dialect: sa.engine.interfaces.Dialect):
         if dialect.name == "postgresql":
             return dialect.type_descriptor(pg.UUID())
         else:
             return dialect.type_descriptor(CHAR(32))
 
-    def process_bind_param(self, value: Any | None, dialect: sa.engine.interfaces.Dialect) -> Any:
+    def process_bind_param(
+        self, value: Any | None, dialect: sa.engine.interfaces.Dialect
+    ) -> str | None:
         if value is None:
             return value
         elif dialect.name == "postgresql":
