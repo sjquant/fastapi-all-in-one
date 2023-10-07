@@ -26,7 +26,7 @@ class User(Model):
 
     def set_password(self, password: str):
         assert len(password) >= config.password_min_length
-        # 영문, 숫자, 특수문자가 각각 1개 이상 포함되어야 합니다
+        # It must contain at least one letter, one number, and one special character
         assert re.match(r"^(?=.*[a-zA-Z])(?=.*[^a-zA-Z0-9])(?=.*[0-9]).+$", password)
 
         self.hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
