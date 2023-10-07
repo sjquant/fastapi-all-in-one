@@ -15,6 +15,8 @@ uvicorn = "^0.23.2"
 typer = {extras = ["all"], version = "^0.9.0"}
 sqlalchemy = "^2.0.21"
 asyncpg = "^0.28.0"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+alembic = "^1.12.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -30,6 +32,20 @@ pyright = "1.1.329"
 pytest-cov = "^4.1.0"
 psycopg2-binary = "^2.9.9"
 greenlet = "^3.0.0"
+
+[tool.ruff]
+line-length = 100
+fix = true
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402"]
+
+[tool.black]
+line-length = 100
+preview = true
+
+[tool.pyright]
+exclude = ["alembic/*"]
 
 [build-system]
 requires = ["poetry-core"]
