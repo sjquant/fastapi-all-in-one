@@ -12,8 +12,8 @@ from app.core.db import Model
 class User(Model):
     __tablename__ = "user__users"
 
-    username: Mapped[str] = mapped_column(sa.String(12), unique=True, index=True, nullable=False)
     email: Mapped[str] = mapped_column(sa.String, unique=True, index=True, nullable=False)
+    nickname: Mapped[str] = mapped_column(sa.String(12), unique=True, index=True, nullable=False)
     photo: Mapped[str] = mapped_column(sa.String, nullable=False, default="")
     hashed_password: Mapped[str] = mapped_column(sa.String, nullable=True)
     last_logged_in: Mapped[datetime.datetime] = mapped_column(

@@ -22,7 +22,7 @@ from app.core.config import config
 
 
 class DB:
-    def __init__(self, db_url: str):
+    def __init__(self, db_url: str | sa.URL):
         self._engine = create_async_engine(
             db_url,
             echo=False,
