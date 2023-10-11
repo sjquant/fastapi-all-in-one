@@ -13,6 +13,7 @@ async def db_session_middleware(
     """
     Middleware that manages database sessions for each request.
     """
+    response = Response("Internal server error", status_code=500)
     try:
         response = await call_next(request)
         if hasattr(request.state, "session"):
@@ -23,7 +24,10 @@ async def db_session_middleware(
         if hasattr(request.state, "session"):
             session: AsyncSession = request.state.session
             await session.rollback()
-        return Response("Internal server error", status_code=500)
+    finally:
+        if hasattr(request.state, "session"):
+            session: AsyncSession = request.state.session
+            await session.close()
     return response
 
 
