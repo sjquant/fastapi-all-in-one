@@ -7,7 +7,7 @@ from app.user.models import User
 
 def test_set_password_hash_works():
     """Setting password hashes the password"""
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     user.set_password("password123!")
     assert user.hashed_password != "password123!"
 
@@ -18,7 +18,7 @@ def test_password_must_be_greater_than_min_length_config(
     """Password must be at least 8 characters"""
     mocker.patch.object(config, "password_min_length", 10)
 
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     with pytest.raises(AssertionError):
         user.set_password("short123!")  # 9 characters
 
@@ -29,7 +29,7 @@ def test_password_must_contain_numer_alphabet_and_special_characters(
     """Password must contain special characters"""
     mocker.patch.object(config, "password_min_length", 10)
 
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     with pytest.raises(AssertionError):
         user.set_password("password123")
 
@@ -39,28 +39,28 @@ def test_password_must_contain_numer_alphabet_and_special_characters(
 
 def test_cannot_read_password():
     """Password is not readable"""
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     with pytest.raises(AttributeError):
         user.password
 
 
 def test_verify_password():
     """Verify password works"""
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     user.set_password("password123!")
     assert user.verify_password("password123!")
 
 
 def test_verify_password_fails():
     """Verify password fails"""
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     user.set_password("password123!")
     assert not user.verify_password("notpassword123!")
 
 
 def test_set_unusable_password():
     """Unusable password works"""
-    user = User(username="test", email="test@email.com")
+    user = User(nickname="test", email="test@email.com")
     user.set_unusable_password()
     assert user.hashed_password is None
 
@@ -68,4 +68,10 @@ def test_set_unusable_password():
 def test_validate_email():
     """Cannot create user with invalid email"""
     with pytest.raises(AssertionError):
-        User(username="test", email="wrongemail")
+        User(nickname="test", email="wrongemail")
+
+
+def test_anonymous_user():
+    """Anonymous user works"""
+    user = User.anonymous()
+    assert user.is_anonymous

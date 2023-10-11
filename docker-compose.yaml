@@ -3,7 +3,6 @@ version: "3"
 services:
   database:
     restart: always
-    container_name: db_base_server
     image: postgres:15-alpine
     volumes:
       - db-volume:/var/lib/postgresql/data

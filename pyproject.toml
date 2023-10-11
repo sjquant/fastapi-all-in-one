@@ -50,3 +50,15 @@ exclude = ["alembic/*"]
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+env = [
+    "ENV=test",
+    "JWT_SECRET_KEY=AUTH_SECRET_KEY",
+    "JWT_ALGORITHM=HS256",
+    "DB_URL=postgresql+asyncpg://user:password@localhost:15432/db_test",
+    "DB_POOL_SIZE=5",
+    "DB_POOL_MAX_OVERFLOW=5",
+]

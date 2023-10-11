@@ -1,15 +1,16 @@
 import datetime
 import re
+from uuid import UUID
 
 import bcrypt
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.core.config import config
-from app.core.db import Model
+from app.core.db import Model, TimestampMixin
 
 
-class User(Model):
+class User(Model, TimestampMixin):
     __tablename__ = "user__users"
 
     email: Mapped[str] = mapped_column(sa.String, unique=True, index=True, nullable=False)
@@ -19,6 +20,20 @@ class User(Model):
     last_logged_in: Mapped[datetime.datetime] = mapped_column(
         sa.TIMESTAMP(timezone=True), nullable=True
     )
+
+    @staticmethod
+    def anonymous():
+        return User(
+            id=UUID(int=0),
+            email="anon@anon.anon",
+            nickname=None,
+            photo=None,
+            hashed_password=None,
+        )
+
+    @property
+    def is_anonymous(self):
+        return self.id.int == 0
 
     @property
     def password(self):
