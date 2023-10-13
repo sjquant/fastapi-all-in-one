@@ -113,7 +113,7 @@ class Model(Base):
     )
 
 
-class TimestampModel(Model):
+class TimestampMixin(Base):
     __abstract__ = True
 
     created_at: Mapped[datetime.datetime] = mapped_column(

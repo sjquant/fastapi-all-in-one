@@ -2,6 +2,7 @@ from functools import cache
 from typing import Annotated
 
 from fastapi import Depends, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import config
 from app.core.db import DB
@@ -18,3 +19,6 @@ async def session(request: Request, db: Annotated[DB, Depends(db)]):
         request.state.session = session
         yield session
         await session.close()
+
+
+SessionDep = Annotated[AsyncSession, Depends(session)]

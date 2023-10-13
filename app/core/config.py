@@ -10,5 +10,8 @@ class Config(BaseSettings):
     password_min_length: int = 8
     model_config = SettingsConfigDict(env_file=".env")
 
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+
 
 config = Config()  # pyright: ignore
