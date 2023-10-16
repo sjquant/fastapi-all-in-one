@@ -3,7 +3,11 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.endpoints import router as auth_router
+
 app = FastAPI()
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 
 @app.middleware("http")

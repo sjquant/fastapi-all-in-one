@@ -1,14 +1,17 @@
 import asyncio
 from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncIterator
 
 import pytest
 import sqlalchemy as sa
-from psycopg2 import ProgrammingError
+from httpx import AsyncClient
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy_utils import create_database, drop_database  # type: ignore
 
 from app.core.config import config
 from app.core.db import DB, Base
+from app.main import app
 
 
 @pytest.fixture(scope="session")
@@ -25,7 +28,7 @@ def create_test_database():
     try:
         create_database(engine.url)
     except ProgrammingError:
-        Base.metadata.drop_all(engine)
+        pass
     Base.metadata.create_all(engine)
     yield
     drop_database(engine.url)
@@ -44,3 +47,13 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
     db = DB(str(config.db_url))
     async with db.session() as session:
         yield session
+
+
+@pytest.fixture
+async def client() -> AsyncIterator[AsyncClient]:
+    async with AsyncClient(
+        app=app,
+        base_url="http://test",
+        headers={"Content-Type": "application/json"},
+    ) as client:
+        yield client
