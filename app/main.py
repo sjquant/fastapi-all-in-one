@@ -24,10 +24,6 @@ async def db_session_middleware(
             session: AsyncSession = request.state.session
             if session.is_active:
                 await session.commit()
-    except Exception:
-        if hasattr(request.state, "session"):
-            session: AsyncSession = request.state.session
-            await session.rollback()
     finally:
         if hasattr(request.state, "session"):
             session: AsyncSession = request.state.session

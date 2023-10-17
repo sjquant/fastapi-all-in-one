@@ -25,6 +25,6 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession) -> No
     )
 
     # then
-    assert response.status_code == 200
     await session.refresh(user)
+    assert response.status_code == 200
     assert AuthenticatedUser(**response.json()) == AuthenticatedUser.model_validate(user)
