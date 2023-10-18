@@ -3,13 +3,13 @@ from app.core.constants import BaseErrorEnum
 
 class HttpError(Exception):
     def __init__(self, error: BaseErrorEnum, *, status_code: int | None = None) -> None:
-        self._msg = error.message
+        self._message = error.message
         self._error_code = error.code
         self._status_code = status_code
 
     @property
-    def msg(self) -> str:
-        return self._msg
+    def message(self) -> str:
+        return self._message
 
     @property
     def error_code(self) -> str:

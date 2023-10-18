@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from app.auth.constants import ErrorEnum
 from app.auth.dto import AuthenticatedUser, SignInResponse, SignInSchema
 from app.core.deps import SessionDep
-from app.core.errors import NotFoundError
+from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
 router = APIRouter()
@@ -21,7 +21,7 @@ async def sign_in(session: SessionDep, data: SignInSchema):
         raise NotFoundError(ErrorEnum.USER_NOT_FOUND)
 
     if not user.verify_password(data.password):
-        raise Exception("Password not match")
+        raise ValidationError(ErrorEnum.PASSWORD_DOES_NOT_MATCH)
 
     user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
 

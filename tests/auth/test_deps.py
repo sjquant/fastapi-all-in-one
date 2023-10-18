@@ -34,7 +34,7 @@ async def test_raises_unauthorized_error_if_invalid_token(
         )
 
     assert e.value.error_code == ErrorEnum.INVALID_CREDENTIALS.code
-    assert e.value.msg == ErrorEnum.INVALID_CREDENTIALS.message
+    assert e.value.message == ErrorEnum.INVALID_CREDENTIALS.message
 
 
 async def test_raises_unauthorized_error_if_user_not_found(
@@ -55,7 +55,7 @@ async def test_raises_unauthorized_error_if_user_not_found(
         )
 
     assert e.value.error_code == ErrorEnum.USER_NOT_FOUND.code
-    assert e.value.msg == ErrorEnum.USER_NOT_FOUND.message
+    assert e.value.message == ErrorEnum.USER_NOT_FOUND.message
 
 
 async def test_returns_user_if_valid_token(session: AsyncSession):
