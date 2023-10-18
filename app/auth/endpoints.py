@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.auth.constants import ErrorEnum
-from app.auth.dto import AuthenticatedUser, SignInSchema
+from app.auth.dto import AuthenticatedUser, SignInResponse, SignInSchema
 from app.core.deps import SessionDep
 from app.core.errors import NotFoundError
 from app.user.models import User
@@ -12,7 +12,7 @@ from app.user.models import User
 router = APIRouter()
 
 
-@router.post("/sign-in/email", response_model=AuthenticatedUser)
+@router.post("/sign-in/email")
 async def sign_in(session: SessionDep, data: SignInSchema):
     res = await session.execute(sa.select(User).where(User.email == data.email))
     user = res.scalar_one_or_none()
@@ -25,6 +25,10 @@ async def sign_in(session: SessionDep, data: SignInSchema):
 
     user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
 
-    await session.flush()
+    await session.commit()
 
-    return user
+    # TODO: refresh token
+
+    return SignInResponse(
+        access_token=user.create_access_token(), user=AuthenticatedUser.model_validate(user)
+    )

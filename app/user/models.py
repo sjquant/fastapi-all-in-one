@@ -4,6 +4,7 @@ from uuid import UUID
 
 import bcrypt
 import sqlalchemy as sa
+from jose import jwt
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.core.config import config
@@ -47,6 +48,17 @@ class User(Model, TimestampMixin):
         self.hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
             "utf-8"
         )
+
+    def create_access_token(self):
+        nbf = datetime.datetime.utcnow().timestamp()
+        payload = {
+            "iss": config.jwt_issuer,
+            "sub": str(self.id),
+            "nbf": nbf,
+            "exp": nbf + config.jwt_expires_seconds,
+        }
+
+        return jwt.encode(payload, config.jwt_secret_key, algorithm=config.jwt_algorithm)
 
     def set_unusable_password(self):
         self.hashed_password = None

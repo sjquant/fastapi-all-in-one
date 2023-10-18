@@ -44,16 +44,8 @@ class DB:
         session: AsyncSession = self._session_factory()
         try:
             yield session
-            # flush()는 DB로직 실패 시 rollback()을 실행하지 않아
-            # session.is_active로 상태를 확인 후 명시적으로 사용해줘야 합니다.
-            if session.is_active:
-                await session.commit()
-            else:
-                await session.rollback()
-        except Exception:
-            await session.rollback()
-            raise
         finally:
+            await session.close()
             await self._session_factory.remove()
 
 

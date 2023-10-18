@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Self
 
+MINUTE = 60
+
 
 class BaseErrorEnum(Enum):
     """

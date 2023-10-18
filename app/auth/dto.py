@@ -24,3 +24,10 @@ class AuthenticatedUser(BaseModel):
     )
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SignInResponse(BaseModel):
+    access_token: str = Field(
+        description="Access token", examples=["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+    )
+    user: AuthenticatedUser

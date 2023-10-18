@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dto import AuthenticatedUser
+from app.auth.dto import AuthenticatedUser, SignInResponse
 from app.user.models import User
 
 
@@ -23,8 +23,11 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession) -> No
             "password": "password123!",
         },
     )
+    await session.refresh(user)
 
     # then
-    await session.refresh(user)
     assert response.status_code == 200
-    assert AuthenticatedUser(**response.json()) == AuthenticatedUser.model_validate(user)
+    data = response.json()
+    assert SignInResponse(**data) == SignInResponse(
+        access_token=data["access_token"], user=AuthenticatedUser.model_validate(user)
+    )
