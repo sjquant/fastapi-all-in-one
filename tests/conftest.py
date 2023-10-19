@@ -1,16 +1,23 @@
 import asyncio
-from collections.abc import AsyncGenerator, Iterator
-from collections.abc import AsyncIterator
+from asyncio import current_task
+from collections.abc import AsyncGenerator, AsyncIterator, Iterator
 
 import pytest
 import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_scoped_session,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy_utils import create_database, drop_database  # type: ignore
 
 from app.core.config import config
-from app.core.db import DB, Base
+from app.core.db import Base
+from app.core.deps import session as session_dep
 from app.main import app
 
 
@@ -23,7 +30,7 @@ def event_loop() -> Iterator[asyncio.AbstractEventLoop]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def create_test_database():
+def database():
     engine = sa.create_engine(str(config.db_url).replace("+asyncpg", ""))
     try:
         create_database(engine.url)
@@ -43,14 +50,32 @@ async def engine() -> AsyncGenerator[AsyncEngine, None]:
 
 
 @pytest.fixture
-async def session() -> AsyncGenerator[AsyncSession, None]:
-    db = DB(str(config.db_url))
-    async with db.session() as session:
-        yield session
+async def session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    # See https://docs.sqlalchemy.org/en/14/orm/session_transaction.html#joining-a-session-into-an-external-transaction-such-as-for-test-suites
+    # for more information about this fixture
+
+    conn = await engine.connect()
+    trans = await conn.begin_nested()
+    session = async_scoped_session(
+        async_sessionmaker(
+            autoflush=False,
+            expire_on_commit=False,
+            class_=AsyncSession,
+            bind=conn,
+        ),
+        scopefunc=current_task,
+    )()
+
+    app.dependency_overrides[session_dep] = lambda: session
+
+    yield session
+
+    await trans.rollback()
+    await conn.close()
 
 
 @pytest.fixture
-async def client() -> AsyncIterator[AsyncClient]:
+async def client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(
         app=app,
         base_url="http://test",

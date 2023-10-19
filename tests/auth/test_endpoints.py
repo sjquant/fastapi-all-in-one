@@ -14,7 +14,7 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
     )
     user.set_password("password123!")
     session.add(user)
-    await session.commit()
+    await session.flush()
 
     # when
     response = await client.post(
@@ -24,7 +24,6 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
             "password": "password123!",
         },
     )
-    await session.refresh(user)
 
     # then
     assert response.status_code == 200
@@ -59,18 +58,18 @@ async def test_signin_by_email_fails_with_wrong_password(
     """Test sign in by email fails with wrong password"""
     # given
     user = User(
-        email="testuser2@test.com",
-        nickname="testuser2",
+        email="testuser@test.com",
+        nickname="testuser",
     )
     user.set_password("password123!")
     session.add(user)
-    await session.commit()
+    await session.flush()
 
     # when
     response = await client.post(
         "/auth/sign-in/email",
         json={
-            "email": "testuser2@test.com",
+            "email": "testuser@test.com",
             "password": "wrongpassword123!",
         },
     )
