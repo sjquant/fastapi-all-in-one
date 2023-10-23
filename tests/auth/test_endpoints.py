@@ -1,7 +1,9 @@
+import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dto import AuthenticatedUser, SignInResponse
+from app.auth.models import RefreshToken
 from app.user.models import User
 
 
@@ -31,6 +33,11 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
     assert SignInResponse(**data) == SignInResponse(
         access_token=data["access_token"], user=AuthenticatedUser.model_validate(user)
     )
+
+    result: RefreshToken = await session.scalar(
+        sa.select(RefreshToken).where(RefreshToken.user_id == user.id)
+    )
+    assert result.token == response.cookies["refresh_token"]
 
 
 async def test_signin_by_email_fails_with_non_existing_user(client: AsyncClient):

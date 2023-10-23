@@ -4,7 +4,6 @@ from uuid import UUID
 
 import bcrypt
 import sqlalchemy as sa
-from jose import jwt
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.core.config import config
@@ -17,7 +16,7 @@ class User(Model, TimestampMixin):
     email: Mapped[str] = mapped_column(sa.String, unique=True, index=True, nullable=False)
     nickname: Mapped[str] = mapped_column(sa.String(12), unique=True, index=True, nullable=False)
     photo: Mapped[str] = mapped_column(sa.String, nullable=False, default="")
-    hashed_password: Mapped[str] = mapped_column(sa.String, nullable=True)
+    hashed_password: Mapped[str | None] = mapped_column(sa.String, nullable=True)
     last_logged_in: Mapped[datetime.datetime] = mapped_column(
         sa.TIMESTAMP(timezone=True), nullable=True
     )
@@ -49,21 +48,12 @@ class User(Model, TimestampMixin):
             "utf-8"
         )
 
-    def create_access_token(self):
-        nbf = datetime.datetime.utcnow().timestamp()
-        payload = {
-            "iss": config.jwt_issuer,
-            "sub": str(self.id),
-            "nbf": nbf,
-            "exp": nbf + config.jwt_expires_seconds,
-        }
-
-        return jwt.encode(payload, config.jwt_secret_key, algorithm=config.jwt_algorithm)
-
     def set_unusable_password(self):
         self.hashed_password = None
 
     def verify_password(self, password: str):
+        if self.hashed_password is None:
+            return False
         return bcrypt.checkpw(password.encode("utf-8"), self.hashed_password.encode("utf-8"))
 
     @validates("email")

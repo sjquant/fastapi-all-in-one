@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -5,7 +7,7 @@ from app.core.constants import MINUTE
 
 
 class Config(BaseSettings):
-    env: str
+    env: Literal["dev", "test", "staging", "prod"]
     db_url: PostgresDsn
     db_pool_size: int
     db_pool_max_overflow: int

@@ -110,10 +110,10 @@ class TimestampMixin(Base):
     __abstract__ = True
 
     created_at: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime(timezone=True), server_default=sa.func.now()
+        sa.DateTime(timezone=True), default=lambda: datetime.datetime.now(tz=datetime.UTC)
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime(timezone=True),
-        server_default=sa.func.now(),
-        onupdate=sa.func.now(),
+        default=lambda: datetime.datetime.now(tz=datetime.UTC),
+        onupdate=lambda: datetime.datetime.now(tz=datetime.UTC),
     )
