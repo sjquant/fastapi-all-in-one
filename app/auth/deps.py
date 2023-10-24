@@ -6,6 +6,7 @@ from jose import jwt
 from jose.exceptions import JWTError
 
 from app.auth.constants import ErrorEnum
+from app.auth.service import AuthService
 from app.core.config import config
 from app.core.deps import SessionDep
 from app.core.errors import UnauthorizedError
@@ -48,4 +49,10 @@ async def current_user(
     return user
 
 
+async def auth_service(session: SessionDep) -> AuthService:
+    return AuthService(session)
+
+
 CurrentUserDep = Annotated[User, Depends(current_user)]
+
+AuthServiceDep = Annotated[AuthService, Depends(auth_service)]

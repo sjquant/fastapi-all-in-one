@@ -55,7 +55,7 @@ async def session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     # for more information about this fixture
 
     conn = await engine.connect()
-    trans = await conn.begin_nested()
+    await conn.begin_nested()
     session = async_scoped_session(
         async_sessionmaker(
             autoflush=False,
@@ -70,7 +70,6 @@ async def session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
 
     yield session
 
-    await trans.rollback()
     await conn.close()
 
 

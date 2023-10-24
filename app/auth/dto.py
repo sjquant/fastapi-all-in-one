@@ -10,7 +10,7 @@ class SignUpSchema(BaseModel):
     nickname: str
 
 
-class SignInSchema(BaseModel):
+class SignInEmailSchema(BaseModel):
     email: str = Field(description="User email", examples=["example@example.com"])
     password: str = Field(description="User password", examples=["password"])
 
