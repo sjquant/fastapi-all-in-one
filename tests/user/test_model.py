@@ -63,6 +63,7 @@ def test_set_unusable_password():
     user = User(nickname="test", email="test@email.com")
     user.set_unusable_password()
     assert user.hashed_password is None
+    assert not user.verify_password("cannotverify")
 
 
 def test_validate_email():

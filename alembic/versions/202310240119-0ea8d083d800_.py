@@ -1,8 +1,8 @@
 """
 
-Revision ID: 863bf8f66115
+Revision ID: 0ea8d083d800
 Revises: 
-Create Date: 2023-10-08 00:09:22.195301
+Create Date: 2023-10-24 01:19:14.867820
 
 """
 from collections.abc import Sequence
@@ -13,7 +13,7 @@ from alembic import op
 from app.core.db import GUID
 
 # revision identifiers, used by Alembic.
-revision: str = "863bf8f66115"
+revision: str = "0ea8d083d800"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -29,6 +29,8 @@ def upgrade() -> None:
         sa.Column("hashed_password", sa.String(), nullable=True),
         sa.Column("last_logged_in", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("id", GUID(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("id"),
     )

@@ -1,36 +1,22 @@
-from collections.abc import Awaitable, Callable
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-from fastapi import FastAPI, Request, Response
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.auth.endpoints import router as auth_router
+from app.core.errors import HttpError
 
 app = FastAPI()
 
-
-@app.middleware("http")
-async def db_session_middleware(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
-    """
-    Middleware that manages database sessions for each request.
-    """
-    response = Response("Internal server error", status_code=500)
-    try:
-        response = await call_next(request)
-        if hasattr(request.state, "session"):
-            session: AsyncSession = request.state.session
-            if session.is_active:
-                await session.commit()
-    except Exception:
-        if hasattr(request.state, "session"):
-            session: AsyncSession = request.state.session
-            await session.rollback()
-    finally:
-        if hasattr(request.state, "session"):
-            session: AsyncSession = request.state.session
-            await session.close()
-    return response
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/ping")
 async def pong():
     return {"ping": "pong"}
+
+
+@app.exception_handler(HttpError)
+def handle_http_error(request: Request, exc: HttpError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"code": exc.error_code, "message": exc.message},
+    )

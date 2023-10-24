@@ -32,6 +32,7 @@ class DB:
         self._session_factory = async_scoped_session(
             async_sessionmaker(
                 autoflush=False,
+                expire_on_commit=False,
                 class_=AsyncSession,
                 bind=self._engine,
             ),
@@ -43,16 +44,8 @@ class DB:
         session: AsyncSession = self._session_factory()
         try:
             yield session
-            # flush()는 DB로직 실패 시 rollback()을 실행하지 않아
-            # session.is_active로 상태를 확인 후 명시적으로 사용해줘야 합니다.
-            if session.is_active:
-                await session.commit()
-            else:
-                await session.rollback()
-        except Exception:
-            await session.rollback()
-            raise
         finally:
+            await session.close()
             await self._session_factory.remove()
 
 
@@ -117,10 +110,10 @@ class TimestampMixin(Base):
     __abstract__ = True
 
     created_at: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime(timezone=True), server_default=sa.func.now()
+        sa.DateTime(timezone=True), default=lambda: datetime.datetime.now(tz=datetime.UTC)
     )
     updated_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime(timezone=True),
-        server_default=sa.func.now(),
-        onupdate=sa.func.now(),
+        default=lambda: datetime.datetime.now(tz=datetime.UTC),
+        onupdate=lambda: datetime.datetime.now(tz=datetime.UTC),
     )

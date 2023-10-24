@@ -1,6 +1,10 @@
 from enum import Enum
 from typing import Self
 
+MINUTE = 60
+HOUR = 60 * MINUTE
+DAY = 24 * MINUTE
+
 
 class BaseErrorEnum(Enum):
     """

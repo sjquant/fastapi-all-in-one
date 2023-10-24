@@ -16,7 +16,7 @@ class User(Model, TimestampMixin):
     email: Mapped[str] = mapped_column(sa.String, unique=True, index=True, nullable=False)
     nickname: Mapped[str] = mapped_column(sa.String(12), unique=True, index=True, nullable=False)
     photo: Mapped[str] = mapped_column(sa.String, nullable=False, default="")
-    hashed_password: Mapped[str] = mapped_column(sa.String, nullable=True)
+    hashed_password: Mapped[str | None] = mapped_column(sa.String, nullable=True)
     last_logged_in: Mapped[datetime.datetime] = mapped_column(
         sa.TIMESTAMP(timezone=True), nullable=True
     )
@@ -52,6 +52,8 @@ class User(Model, TimestampMixin):
         self.hashed_password = None
 
     def verify_password(self, password: str):
+        if self.hashed_password is None:
+            return False
         return bcrypt.checkpw(password.encode("utf-8"), self.hashed_password.encode("utf-8"))
 
     @validates("email")
