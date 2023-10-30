@@ -8,6 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.core.config import config
 from app.core.db import Model, TimestampMixin
+from app.core.errors import ValidationError
+from app.user.constants import ErrorEnum
 
 
 class User(Model, TimestampMixin):
@@ -40,9 +42,12 @@ class User(Model, TimestampMixin):
         raise AttributeError("Password is not a readable attribute")
 
     def set_password(self, password: str):
-        assert len(password) >= config.password_min_length
-        # It must contain at least one letter, one number, and one special character
-        assert re.match(r"^(?=.*[a-zA-Z])(?=.*[^a-zA-Z0-9])(?=.*[0-9]).+$", password)
+        if len(password) < config.password_min_length:
+            raise ValidationError(
+                ErrorEnum.PASSWORD_TOO_SHORT.dynamic_message(length=config.password_min_length)
+            )
+        if not re.match(r"^(?=.*[a-zA-Z])(?=.*[^a-zA-Z0-9])(?=.*[0-9]).+$", password):
+            raise ValidationError(ErrorEnum.PASSWORD_TOO_SIMPLE)
 
         self.hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
             "utf-8"
@@ -58,5 +63,6 @@ class User(Model, TimestampMixin):
 
     @validates("email")
     def validate_email(self, key: str, email: str):
-        assert re.match(r"[^@]+@[^@]+\.[^@]+", email)
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            raise ValidationError(ErrorEnum.INVALID_EMAIL)
         return email
