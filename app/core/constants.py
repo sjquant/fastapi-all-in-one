@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Self
+from typing import Any, Self
 
 MINUTE = 60
 HOUR = 60 * MINUTE
@@ -27,7 +27,7 @@ class BaseErrorEnum(Enum):
         else:
             return self._message
 
-    def dynamic_message(self, **kwargs: str) -> Self:
+    def dynamic_message(self, **kwargs: Any) -> Self:
         # In order for dynamic messages to work in test code, it should be used as follows:
         self._daynamic_message = self._message.format(**kwargs)
         return self

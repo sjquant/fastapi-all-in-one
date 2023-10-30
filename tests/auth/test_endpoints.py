@@ -1,3 +1,5 @@
+from typing import cast
+
 import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,10 +36,8 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
         access_token=data["access_token"], user=AuthenticatedUser.model_validate(user)
     )
 
-    result: RefreshToken = await session.scalar(
-        sa.select(RefreshToken).where(RefreshToken.user_id == user.id)
-    )
-    assert result.token == response.cookies["refresh_token"]
+    result = await session.scalar(sa.select(RefreshToken).where(RefreshToken.user_id == user.id))
+    assert cast(RefreshToken, result).token == response.cookies["refresh_token"]
 
 
 async def test_signin_by_email_fails_with_non_existing_user(client: AsyncClient):
@@ -55,7 +55,7 @@ async def test_signin_by_email_fails_with_non_existing_user(client: AsyncClient)
     assert response.status_code == 404
     assert response.json() == {
         "code": "USER_NOT_FOUND",
-        "message": "해당 사용자를 찾을 수 없습니다.",
+        "message": "Specified user does not exist.",
     }
 
 
@@ -85,5 +85,5 @@ async def test_signin_by_email_fails_with_wrong_password(
     assert response.status_code == 409
     assert response.json() == {
         "code": "PASSWORD_DOES_NOT_MATCH",
-        "message": "비밀번호가 일치하지 않습니다.",
+        "message": "Provided password does not match.",
     }
