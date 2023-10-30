@@ -1,3 +1,5 @@
+from typing import cast
+
 import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,10 +36,8 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
         access_token=data["access_token"], user=AuthenticatedUser.model_validate(user)
     )
 
-    result: RefreshToken = await session.scalar(
-        sa.select(RefreshToken).where(RefreshToken.user_id == user.id)
-    )
-    assert result.token == response.cookies["refresh_token"]
+    result = await session.scalar(sa.select(RefreshToken).where(RefreshToken.user_id == user.id))
+    assert cast(RefreshToken, result).token == response.cookies["refresh_token"]
 
 
 async def test_signin_by_email_fails_with_non_existing_user(client: AsyncClient):
