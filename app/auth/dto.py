@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class SignUpSchema(BaseModel):
+class SignUpEmailSchema(BaseModel):
     email: str
     password: str
     nickname: str
