@@ -38,3 +38,29 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
 
     result = await session.scalar(sa.select(RefreshToken).where(RefreshToken.user_id == user.id))
     assert cast(RefreshToken, result).token == response.cookies["refresh_token"]
+
+
+async def test_signup_by_email(client: AsyncClient, session: AsyncSession):
+    """Test sign up by email"""
+    # when
+    response = await client.post(
+        "/auth/sign-up/email",
+        json={
+            "email": "test@test.com",
+            "password": "password123!",
+            "nickname": "testuser",
+        },
+    )
+
+    # then
+    assert response.status_code == 200
+    data = response.json()
+    assert SignInResponse(**data) == SignInResponse(
+        access_token=data["access_token"], user=AuthenticatedUser(**data["user"])
+    )
+
+    result = await session.scalar(sa.select(User).where(User.email == "test@test.com"))
+    assert result is not None
+
+    token = await session.scalar(sa.select(RefreshToken).where(RefreshToken.user_id == result.id))
+    assert cast(RefreshToken, token).token == response.cookies["refresh_token"]
