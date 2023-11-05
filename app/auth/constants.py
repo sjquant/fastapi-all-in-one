@@ -12,3 +12,11 @@ class ErrorEnum(BaseErrorEnum):
     )
     USER_NOT_FOUND = ("USER_NOT_FOUND", "Specified user does not exist.")
     USER_ALREADY_EXISTS = ("USER_ALREADY_EXISTS", "Specified user already exists.")
+    NO_REFRESH_TOKEN = (
+        "REFRESH_TOKEN_NOT_FOUND",
+        "No refresh token was provided.",
+    )
+    INVALID_REFRESH_TOKEN = (
+        "INVALID_REFRESH_TOKEN",
+        "Provided refresh token is invalid.",
+    )

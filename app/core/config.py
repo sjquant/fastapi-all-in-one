@@ -16,7 +16,8 @@ class Config(BaseSettings):
     jwt_issuer: str
     jwt_algorithm: str = "HS256"
     jwt_expires_seconds: int = 30 * MINUTE
-    refresh_token_expires_seconds: int = 7 * DAY
+    refresh_token_expires_seconds: int = 30 * DAY  # Refresh token expires after this
+    refresh_token_stale_seconds: int = 7 * DAY  # Refresh token renewed if older than this
 
     model_config = SettingsConfigDict(env_file=".env")
 
