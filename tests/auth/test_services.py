@@ -1,8 +1,13 @@
+import asyncio
+
 import pytest
+import pytest_mock
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.constants import ErrorEnum
 from app.auth.service import AuthService
-from app.core.errors import NotFoundError, ValidationError
+from app.core.config import config
+from app.core.errors import NotFoundError, UnauthorizedError, ValidationError
 from app.user.models import User
 
 
@@ -119,3 +124,49 @@ async def test_cannot_sign_in_by_email_with_non_existing_user(session: AsyncSess
 
     assert e.value.error_code == "USER_NOT_FOUND"
     assert e.value.message == "Specified user does not exist."
+
+
+async def test_cannot_renew_refresh_token_with_expired_token(session: AsyncSession):
+    """Cannot renew refresh token with invalid token"""
+    # given
+    service = AuthService(session)
+    user, _ = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+
+    # when & then
+    with pytest.raises(UnauthorizedError) as e:
+        await service.renew_refresh_token_if_needed(user.id, "invalidtoken")
+
+    assert e.value.error_code == ErrorEnum.INVALID_REFRESH_TOKEN.code
+    assert e.value.message == ErrorEnum.INVALID_REFRESH_TOKEN.message
+
+
+async def test_renew_refresh_token_if_stale(
+    session: AsyncSession, mocker: pytest_mock.MockerFixture
+) -> None:
+    """Renew refresh token if old token is stale"""
+    # given
+    mocker.patch.object(config, "refresh_token_stale_seconds", 0.01)
+    service = AuthService(session)
+
+    user, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+
+    # when
+    await asyncio.sleep(0.02)
+    new_token = await service.renew_refresh_token_if_needed(user.id, old_token.token)
+
+    # then
+    assert new_token.token != old_token.token  # type: ignore
+
+
+async def test_do_not_renew_refresh_token_if_not_stale(
+    session: AsyncSession, mocker: pytest_mock.MockerFixture
+) -> None:
+    """If old token is not stale, do not renew refresh token and return None"""
+    # given
+    service = AuthService(session)
+
+    user, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+    new_token = await service.renew_refresh_token_if_needed(user.id, old_token.token)
+
+    # then
+    assert new_token is None

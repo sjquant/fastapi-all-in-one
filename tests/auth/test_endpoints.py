@@ -1,11 +1,16 @@
+import datetime
+import secrets
 from typing import cast
 
 import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.constants import ErrorEnum
+from app.auth.deps import current_user
 from app.auth.dto import AuthenticatedUser, SignInResponse
 from app.auth.models import RefreshToken
+from app.main import app
 from app.user.models import User
 
 
@@ -64,3 +69,61 @@ async def test_signup_by_email(client: AsyncClient, session: AsyncSession):
 
     token = await session.scalar(sa.select(RefreshToken).where(RefreshToken.user_id == result.id))
     assert cast(RefreshToken, token).token == response.cookies["refresh_token"]
+
+
+async def test_refresh_token(client: AsyncClient, session: AsyncSession):
+    """Test refresh token works"""
+    # given
+    user = User(
+        email="test@test.com",
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+
+    refresh_token = RefreshToken(
+        token=secrets.token_urlsafe(32),
+        user_id=user.id,
+        expires_at=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1),
+    )
+    session.add(refresh_token)
+    await session.flush()
+
+    app.dependency_overrides[current_user] = lambda: user
+
+    # when
+    response = await client.post(
+        "/auth/refresh-token",
+        cookies={"refresh_token": refresh_token.token},
+    )
+
+    # then
+    assert response.status_code == 200
+    data = response.json()
+    assert data["access_token"] is not None
+
+
+async def test_cannot_refresh_token_without_refresh_token(
+    client: AsyncClient, session: AsyncSession
+):
+    """Test cannot refresh token without refresh token"""
+    # given
+    user = User(
+        email="test@test.com",
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+    app.dependency_overrides[current_user] = lambda: user
+
+    # when
+    response = await client.post("/auth/refresh-token")
+
+    # then
+    assert response.status_code == 401
+    assert response.json() == {
+        "code": ErrorEnum.NO_REFRESH_TOKEN.code,
+        "message": ErrorEnum.NO_REFRESH_TOKEN.message,
+    }

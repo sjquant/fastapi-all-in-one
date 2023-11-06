@@ -61,7 +61,7 @@ async def refresh_token(
     response: Response,
     session: SessionDep,
     user: CurrentUserDep,
-    refresh_token: Annotated[str | None, Cookie()],
+    refresh_token: Annotated[str | None, Cookie()] = None,
 ):
     auth_service = AuthService(session)
 
