@@ -81,3 +81,9 @@ async def client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
         headers={"Content-Type": "application/json"},
     ) as client:
         yield client
+
+
+@pytest.fixture(autouse=True)
+def teardown_dependency_overrides():
+    yield
+    app.dependency_overrides = {}

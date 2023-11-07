@@ -3,7 +3,7 @@ from typing import Any, Self
 
 MINUTE = 60
 HOUR = 60 * MINUTE
-DAY = 24 * MINUTE
+DAY = 24 * HOUR
 
 
 class BaseErrorEnum(Enum):

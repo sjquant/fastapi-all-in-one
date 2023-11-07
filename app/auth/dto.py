@@ -31,3 +31,9 @@ class SignInResponse(BaseModel):
         description="Access token", examples=["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
     )
     user: AuthenticatedUser
+
+
+class AccessTokenResponse(BaseModel):
+    access_token: str = Field(
+        description="Access token", examples=["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+    )
