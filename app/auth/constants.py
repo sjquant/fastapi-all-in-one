@@ -6,6 +6,10 @@ class ErrorEnum(BaseErrorEnum):
         "INVALID_CREDENTIALS",
         "Provided credentials are invalid.",
     )
+    USER_NOT_AUTHENTICATED = (
+        "USER_NOT_AUTHENTICATED",
+        "User is not authenticated.",
+    )
     PASSWORD_DOES_NOT_MATCH = (
         "PASSWORD_DOES_NOT_MATCH",
         "Provided password does not match.",
