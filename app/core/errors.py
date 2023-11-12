@@ -33,7 +33,7 @@ class UnauthorizedError(HttpError):
         return 401
 
 
-class PermissionDeniedError(HttpError):
+class PermissionDenied(HttpError):
     def __init__(self, error: BaseErrorEnum) -> None:
         super().__init__(error)
 

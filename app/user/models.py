@@ -38,6 +38,10 @@ class User(Model, TimestampMixin):
         return self.id.int == 0
 
     @property
+    def is_authenticated(self):
+        return not self.is_anonymous
+
+    @property
     def password(self):
         raise AttributeError("Password is not a readable attribute")
 

@@ -1,4 +1,5 @@
 from typing import Annotated
+from collections.abc import Callable
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -8,7 +9,7 @@ from jose.exceptions import JWTError
 from app.auth.constants import ErrorEnum
 from app.core.config import config
 from app.core.deps import SessionDep
-from app.core.errors import UnauthorizedError
+from app.core.errors import PermissionDenied, UnauthorizedError
 from app.user.models import User
 
 
@@ -49,3 +50,11 @@ async def current_user(
 
 
 CurrentUserDep = Annotated[User, Depends(current_user)]
+
+
+def require_auth() -> Callable[[CurrentUserDep], None]:
+    def _require_auth(user: CurrentUserDep) -> None:
+        if not user.is_authenticated:
+            raise PermissionDenied(ErrorEnum.USER_NOT_AUTHENTICATED)
+
+    return _require_auth

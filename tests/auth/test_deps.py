@@ -7,9 +7,9 @@ from jose import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum
-from app.auth.deps import current_user
+from app.auth.deps import current_user, require_auth
 from app.core.config import config
-from app.core.errors import UnauthorizedError
+from app.core.errors import PermissionDenied, UnauthorizedError
 from app.user.models import User
 
 
@@ -79,3 +79,23 @@ async def test_returns_user_if_valid_token(session: AsyncSession):
 
     # then
     assert expected_user.id == actual_user.id
+
+
+async def test_require_auth_raises_permission_error_if_user_not_authenticated():
+    """Raises a permission error if the user is not authenticated"""
+    user = User.anonymous()
+
+    with pytest.raises(PermissionDenied) as e:
+        require_auth()(user)
+
+    assert e.value.error_code == ErrorEnum.USER_NOT_AUTHENTICATED.code
+    assert e.value.message == ErrorEnum.USER_NOT_AUTHENTICATED.message
+
+
+async def test_require_auth_does_not_raise_permission_error_if_user_authenticated():
+    """Does not raise a permission error if the user is authenticated"""
+    user = User(id=uuid.uuid4(), email="test@test.com", nickname="test")
+
+    res = require_auth()(user)
+
+    assert res is None
