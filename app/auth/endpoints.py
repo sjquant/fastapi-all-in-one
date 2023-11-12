@@ -6,7 +6,6 @@ from fastapi import APIRouter, Cookie, Response
 from jose import jwt
 
 from app.auth.constants import ErrorEnum
-from app.auth.deps import CurrentUserDep
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
@@ -60,7 +59,6 @@ async def sign_up_by_email(response: Response, session: SessionDep, data: SignUp
 async def refresh_token(
     response: Response,
     session: SessionDep,
-    user: CurrentUserDep,
     refresh_token: Annotated[str | None, Cookie()] = None,
 ):
     auth_service = AuthService(session)
@@ -68,18 +66,20 @@ async def refresh_token(
     if refresh_token is None:
         raise UnauthorizedError(ErrorEnum.NO_REFRESH_TOKEN)
 
-    new_refresh_token = await auth_service.renew_refresh_token_if_needed(user.id, refresh_token)
+    refresh_token_model, is_renewed = await auth_service.renew_refresh_token_if_needed(
+        refresh_token
+    )
 
-    if new_refresh_token:
+    if is_renewed:
         response.set_cookie(
             key="refresh_token",
-            value=new_refresh_token.token,
+            value=refresh_token_model.token,
             httponly=True,
             secure=config.env == "prod",
             samesite="lax",
         )
 
-    access_token = generate_access_token(user.id)
+    access_token = generate_access_token(refresh_token_model.user_id)
 
     return AccessTokenResponse(access_token=access_token)
 

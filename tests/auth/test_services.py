@@ -130,11 +130,10 @@ async def test_cannot_renew_refresh_token_with_expired_token(session: AsyncSessi
     """Cannot renew refresh token with invalid token"""
     # given
     service = AuthService(session)
-    user, _ = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
 
     # when & then
     with pytest.raises(UnauthorizedError) as e:
-        await service.renew_refresh_token_if_needed(user.id, "invalidtoken")
+        await service.renew_refresh_token_if_needed("invalidtoken")
 
     assert e.value.error_code == ErrorEnum.INVALID_REFRESH_TOKEN.code
     assert e.value.message == ErrorEnum.INVALID_REFRESH_TOKEN.message
@@ -148,14 +147,15 @@ async def test_renew_refresh_token_if_stale(
     mocker.patch.object(config, "refresh_token_stale_seconds", 0.01)
     service = AuthService(session)
 
-    user, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+    _, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
 
     # when
     await asyncio.sleep(0.02)
-    new_token = await service.renew_refresh_token_if_needed(user.id, old_token.token)
+    new_token, is_renewed = await service.renew_refresh_token_if_needed(old_token.token)
 
     # then
     assert new_token.token != old_token.token  # type: ignore
+    assert is_renewed
 
 
 async def test_do_not_renew_refresh_token_if_not_stale(
@@ -165,8 +165,9 @@ async def test_do_not_renew_refresh_token_if_not_stale(
     # given
     service = AuthService(session)
 
-    user, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
-    new_token = await service.renew_refresh_token_if_needed(user.id, old_token.token)
+    _, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+    new_token, is_renewed = await service.renew_refresh_token_if_needed(old_token.token)
 
     # then
-    assert new_token is None
+    assert new_token == old_token
+    assert not is_renewed

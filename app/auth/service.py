@@ -1,6 +1,5 @@
 import datetime
 import secrets
-from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
@@ -67,10 +66,19 @@ class AuthService:
 
         return user, refresh_token
 
-    async def renew_refresh_token_if_needed(self, user_id: UUID, token: str):
+    async def renew_refresh_token_if_needed(self, token: str):
+        """
+        Renew the refresh token if it is stale, otherwise return the existing token.
+
+        Args:
+            token: The refresh token to check.
+
+        Returns:
+            A tuple containing the new refresh token and a boolean indicating
+            whether the token was renewed, or the existing refresh token if it is not stale.
+        """
         old_token = await self.session.scalar(
             sa.select(RefreshToken).where(
-                RefreshToken.user_id == user_id,
                 RefreshToken.token == token,
                 RefreshToken.is_revoked.is_(False),
             )
@@ -84,12 +92,12 @@ class AuthService:
         if old_token.is_stale:
             old_token.is_revoked = True
             new_refresh_token = RefreshToken(
-                user_id=user_id,
+                user_id=old_token.user_id,
                 expires_at=datetime.datetime.now(tz=datetime.UTC)
                 + datetime.timedelta(seconds=config.refresh_token_expires_seconds),
                 token=secrets.token_urlsafe(32),
             )
             await self.session.commit()
-            return new_refresh_token
+            return new_refresh_token, True
 
-        return None
+        return old_token, False
