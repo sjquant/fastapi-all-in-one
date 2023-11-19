@@ -26,6 +26,10 @@ class ErrorEnum(BaseErrorEnum):
         "INVALID_REFRESH_TOKEN",
         "Provided refresh token is invalid.",
     )
+    INVALID_VERIFICATION_CODE = (
+        "INVALID_VERIFICATION_CODE",
+        "Provided verification code is invalid.",
+    )
 
 
 class VerificationUsage(StrEnum):

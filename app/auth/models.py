@@ -7,10 +7,9 @@ from uuid import UUID
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.constants import VerificationUsage
 from app.core.config import config
 from app.core.db import Model, TimestampMixin
-from app.core.errors import UnauthorizedError
 from app.user.models import User
 
 
@@ -49,17 +48,15 @@ class RefreshToken(Model, TimestampMixin):
     def is_valid(self):
         return not self.is_expired and not self.is_revoked
 
-    def validate(self):
-        if not self.is_valid:
-            raise UnauthorizedError(ErrorEnum.INVALID_REFRESH_TOKEN)
-
 
 class EmailVerification(Model, TimestampMixin):
     __tablename__ = "auth__email_verifications"
 
-    email: Mapped[str] = mapped_column(sa.String, nullable=False)
+    email: Mapped[str] = mapped_column(sa.String, nullable=False, index=True)
     code: Mapped[str] = mapped_column(sa.String, nullable=False)
-    expires_at: Mapped[datetime.datetime] = mapped_column(sa.DateTime, nullable=False)
+    expires_at: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime(timezone=True), nullable=False
+    )
     verified: Mapped[bool] = mapped_column(sa.Boolean, default=False, nullable=False)
     user_id: Mapped[int] = mapped_column(sa.ForeignKey("user__users.id"), nullable=False)
     usage: Mapped[VerificationUsage] = mapped_column(sa.String, nullable=False)

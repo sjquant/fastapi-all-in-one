@@ -4,10 +4,11 @@ import pytest
 import pytest_mock
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.constants import ErrorEnum
+from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.models import EmailVerification
 from app.auth.service import AuthService
 from app.core.config import config
-from app.core.errors import NotFoundError, UnauthorizedError, ValidationError
+from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
 
@@ -109,8 +110,8 @@ async def test_cannot_sign_in_by_email_with_wrong_password(session: AsyncSession
     with pytest.raises(ValidationError) as e:
         await service.sign_in_by_email(email, "wrongpassword123!")
 
-    assert e.value.error_code == "PASSWORD_DOES_NOT_MATCH"
-    assert e.value.message == "Provided password does not match."
+    assert e.value.error_code == ErrorEnum.PASSWORD_DOES_NOT_MATCH.code
+    assert e.value.message == ErrorEnum.PASSWORD_DOES_NOT_MATCH.message
 
 
 async def test_cannot_sign_in_by_email_with_non_existing_user(session: AsyncSession):
@@ -122,8 +123,8 @@ async def test_cannot_sign_in_by_email_with_non_existing_user(session: AsyncSess
     with pytest.raises(NotFoundError) as e:
         await service.sign_in_by_email("random@test.com", "password123!")
 
-    assert e.value.error_code == "USER_NOT_FOUND"
-    assert e.value.message == "Specified user does not exist."
+    assert e.value.error_code == ErrorEnum.USER_NOT_FOUND.code
+    assert e.value.message == ErrorEnum.USER_NOT_FOUND.message
 
 
 async def test_cannot_renew_refresh_token_with_expired_token(session: AsyncSession):
@@ -132,7 +133,7 @@ async def test_cannot_renew_refresh_token_with_expired_token(session: AsyncSessi
     service = AuthService(session)
 
     # when & then
-    with pytest.raises(UnauthorizedError) as e:
+    with pytest.raises(ValidationError) as e:
         await service.renew_refresh_token_if_needed("invalidtoken")
 
     assert e.value.error_code == ErrorEnum.INVALID_REFRESH_TOKEN.code
@@ -171,3 +172,80 @@ async def test_do_not_renew_refresh_token_if_not_stale(
     # then
     assert new_token == old_token
     assert not is_renewed
+
+
+async def test_verify_email(session: AsyncSession):
+    """Verify email works"""
+    # given
+    email = "test@test.com"
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+
+    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
+    # when
+    service = AuthService(session)
+    await service.verify_email(email=email, code=verification.code, usage=VerificationUsage.SIGN_UP)
+
+    # then
+    await session.refresh(user)
+    assert user.email_verified
+
+
+async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
+    """Cannot verify email with invalid code"""
+    # given
+    email = "test@test.com"
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+
+    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
+    # when & then
+    service = AuthService(session)
+    with pytest.raises(ValidationError) as e:
+        await service.verify_email(email=email, code="invalidcode", usage=VerificationUsage.SIGN_UP)
+
+    assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
+    assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message
+
+
+async def test_cannot_verify_email_with_different_email(session: AsyncSession):
+    """Cannot verify email with different email"""
+    # given
+    email = "test@test.com"
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+
+    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
+    # when & then
+    service = AuthService(session)
+    with pytest.raises(ValidationError) as e:
+        await service.verify_email(
+            email="different@test.com", code=verification.code, usage=VerificationUsage.SIGN_UP
+        )
+
+    assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
+    assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message
