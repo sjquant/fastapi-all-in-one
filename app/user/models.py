@@ -22,6 +22,9 @@ class User(Model, TimestampMixin):
     last_logged_in: Mapped[datetime.datetime] = mapped_column(
         sa.TIMESTAMP(timezone=True), nullable=True
     )
+    email_verified: Mapped[bool] = mapped_column(
+        sa.Boolean, default=False, server_default=sa.text("false"), nullable=False
+    )
 
     @staticmethod
     def anonymous():
