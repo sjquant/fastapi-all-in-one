@@ -222,3 +222,30 @@ async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
 
     assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
     assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message
+
+
+async def test_cannot_verify_email_with_different_email(session: AsyncSession):
+    """Cannot verify email with different email"""
+    # given
+    email = "test@test.com"
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+
+    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
+    # when & then
+    service = AuthService(session)
+    with pytest.raises(ValidationError) as e:
+        await service.verify_email(
+            email="different@test.com", code=verification.code, usage=VerificationUsage.SIGN_UP
+        )
+
+    assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
+    assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message

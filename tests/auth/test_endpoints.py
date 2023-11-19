@@ -6,10 +6,10 @@ import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.constants import ErrorEnum
+from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.deps import current_user
 from app.auth.dto import AuthenticatedUser, SignInResponse
-from app.auth.models import RefreshToken
+from app.auth.models import EmailVerification, RefreshToken
 from app.main import app
 from app.user.models import User
 
@@ -127,3 +127,32 @@ async def test_cannot_refresh_token_without_refresh_token(
         "code": ErrorEnum.NO_REFRESH_TOKEN.code,
         "message": ErrorEnum.NO_REFRESH_TOKEN.message,
     }
+
+
+async def test_verify_email(client: AsyncClient, session: AsyncSession):
+    """Test verify email"""
+    # given
+    user = User(
+        email="test@test.com",
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+    app.dependency_overrides[current_user] = lambda: user
+
+    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
+    # when
+    response = await client.post(
+        "/auth/verify-email",
+        json={
+            "email": "test@test.com",
+            "code": verification.code,
+        },
+    )
+
+    # then
+    assert response.status_code == 200
