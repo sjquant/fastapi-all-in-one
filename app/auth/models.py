@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import secrets
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -56,6 +57,17 @@ class EmailVerification(Model, TimestampMixin):
     is_revoked: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False, index=True)
 
     user: Mapped[User] = relationship("User")
+
+    @classmethod
+    def from_user(cls, user: User, usage: VerificationUsage) -> EmailVerification:
+        code = "".join(secrets.choice("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(8))
+        return cls(
+            email=user.email,
+            code=code,
+            expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=3600),
+            user_id=user.id,
+            usage=usage,
+        )
 
     @property
     def is_expired(self):

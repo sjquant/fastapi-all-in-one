@@ -1,13 +1,15 @@
 import datetime
+import uuid
 
 import pytest
 import pytest_mock
 
-from app.auth.constants import ErrorEnum
+from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
 from app.core.constants import DAY
 from app.core.errors import UnauthorizedError
+from app.user.models import User
 
 
 def test_refresh_token_is_expired():
@@ -114,3 +116,14 @@ def test_email_verification_is_not_valid():
         is_revoked=False,
     )
     assert not email_verification.is_valid
+
+
+def test_email_verification_from_user():
+    """Email verification from user"""
+    user = User(id=uuid.uuid4(), email="test@test.com")
+    email_verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    assert email_verification.email == user.email
+    assert email_verification.user_id == user.id
+    assert email_verification.usage == VerificationUsage.SIGN_UP
+    assert email_verification.code is not None
+    assert email_verification.expires_at > datetime.datetime.now(datetime.UTC)
