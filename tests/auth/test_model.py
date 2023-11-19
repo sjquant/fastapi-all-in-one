@@ -4,7 +4,7 @@ import pytest
 import pytest_mock
 
 from app.auth.constants import ErrorEnum
-from app.auth.models import RefreshToken
+from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
 from app.core.constants import DAY
 from app.core.errors import UnauthorizedError
@@ -44,6 +44,24 @@ def test_refresh_token_is_not_stale(mocker: pytest_mock.MockerFixture):
     assert not refresh_token.is_stale
 
 
+def test_refresh_token_is_valid():
+    """Refresh token is valid"""
+    refresh_token = RefreshToken(
+        expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1),
+        is_revoked=False,
+    )
+    assert refresh_token.is_valid
+
+
+def test_refresh_token_is_not_valid():
+    """Refresh token is not valid"""
+    refresh_token = RefreshToken(
+        expires_at=datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=1),
+        is_revoked=False,
+    )
+    assert not refresh_token.is_valid
+
+
 def test_refresh_token_validate_raises_error():
     """Refresh token validate raises error"""
     refresh_token = RefreshToken(
@@ -62,3 +80,37 @@ def test_refresh_token_validate_does_not_raise_error():
         expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1)
     )
     refresh_token.validate()
+
+
+def test_email_verification_is_expired():
+    """Email verification is expired"""
+    email_verification = EmailVerification(
+        expires_at=datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=1)
+    )
+    assert email_verification.is_expired
+
+
+def test_email_verification_is_not_expired():
+    """Email verification is not expired"""
+    email_verification = EmailVerification(
+        expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1)
+    )
+    assert not email_verification.is_expired
+
+
+def test_email_verification_is_valid():
+    """Email verification is valid"""
+    email_verification = EmailVerification(
+        expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1),
+        is_revoked=False,
+    )
+    assert email_verification.is_valid
+
+
+def test_email_verification_is_not_valid():
+    """Email verification is not valid"""
+    email_verification = EmailVerification(
+        expires_at=datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=1),
+        is_revoked=False,
+    )
+    assert not email_verification.is_valid
