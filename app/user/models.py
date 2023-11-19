@@ -23,7 +23,7 @@ class User(Model, TimestampMixin):
         sa.TIMESTAMP(timezone=True), nullable=True
     )
     email_verified: Mapped[bool] = mapped_column(
-        sa.Boolean, default=False, server_default=sa.text("false"), nullable=False
+        sa.Boolean, default=False, server_default=sa.false(), nullable=False
     )
 
     @staticmethod
