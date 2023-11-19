@@ -1,8 +1,8 @@
 """
 
-Revision ID: 9cd79467a454
+Revision ID: 7a25e8ddd879
 Revises: 189247e8ff17
-Create Date: 2023-11-19 17:09:40.133754
+Create Date: 2023-11-19 17:26:53.412012
 
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 from app.core.db import GUID
 
 # revision identifiers, used by Alembic.
-revision: str = "9cd79467a454"
+revision: str = "7a25e8ddd879"
 down_revision: str | None = "189247e8ff17"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -25,7 +25,7 @@ def upgrade() -> None:
     op.create_table(
         "auth__email_verifications",
         sa.Column("email", sa.String(), nullable=False),
-        sa.Column("verification_code", sa.String(), nullable=False),
+        sa.Column("code", sa.String(), nullable=False),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("verified", sa.Boolean(), nullable=False),
         sa.Column("user_id", GUID(), nullable=False),

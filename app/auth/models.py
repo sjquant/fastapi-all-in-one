@@ -48,7 +48,7 @@ class EmailVerification(Model, TimestampMixin):
     __tablename__ = "auth__email_verifications"
 
     email: Mapped[str] = mapped_column(sa.String, nullable=False)
-    verification_code: Mapped[str] = mapped_column(sa.String, nullable=False)
+    code: Mapped[str] = mapped_column(sa.String, nullable=False)
     expires_at: Mapped[datetime.datetime] = mapped_column(sa.DateTime, nullable=False)
     verified: Mapped[bool] = mapped_column(sa.Boolean, default=False, nullable=False)
     user_id: Mapped[int] = mapped_column(sa.ForeignKey("user__users.id"), nullable=False)
