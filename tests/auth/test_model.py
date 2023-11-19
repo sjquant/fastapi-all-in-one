@@ -1,14 +1,12 @@
 import datetime
 import uuid
 
-import pytest
 import pytest_mock
 
-from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.constants import VerificationUsage
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
 from app.core.constants import DAY
-from app.core.errors import UnauthorizedError
 from app.user.models import User
 
 
@@ -62,26 +60,6 @@ def test_refresh_token_is_not_valid():
         is_revoked=False,
     )
     assert not refresh_token.is_valid
-
-
-def test_refresh_token_validate_raises_error():
-    """Refresh token validate raises error"""
-    refresh_token = RefreshToken(
-        expires_at=datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=1)
-    )
-    with pytest.raises(UnauthorizedError) as e:
-        refresh_token.validate()
-
-    assert e.value.error_code == ErrorEnum.INVALID_REFRESH_TOKEN.code
-    assert e.value.message == ErrorEnum.INVALID_REFRESH_TOKEN.message
-
-
-def test_refresh_token_validate_does_not_raise_error():
-    """Refresh token validate does not raise error"""
-    refresh_token = RefreshToken(
-        expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1)
-    )
-    refresh_token.validate()
 
 
 def test_refresh_token_from_user_id():

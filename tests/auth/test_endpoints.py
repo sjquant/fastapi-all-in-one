@@ -122,7 +122,7 @@ async def test_cannot_refresh_token_without_refresh_token(
     response = await client.post("/auth/refresh-token")
 
     # then
-    assert response.status_code == 401
+    assert response.status_code == 409
     assert response.json() == {
         "code": ErrorEnum.NO_REFRESH_TOKEN.code,
         "message": ErrorEnum.NO_REFRESH_TOKEN.message,

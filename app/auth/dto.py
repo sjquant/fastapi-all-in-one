@@ -26,6 +26,11 @@ class AuthenticatedUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VerifyEmailSchema(BaseModel):
+    email: str = Field(description="User email", examples=["example@example.com"])
+    code: str = Field(description="Verification code", examples=["ABCD1234"])
+
+
 class SignInResponse(BaseModel):
     access_token: str = Field(
         description="Access token", examples=["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]

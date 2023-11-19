@@ -4,9 +4,9 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.constants import ErrorEnum
-from app.auth.models import RefreshToken
-from app.core.errors import NotFoundError, UnauthorizedError, ValidationError
+from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.models import EmailVerification, RefreshToken
+from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
 
@@ -15,6 +15,17 @@ class AuthService:
         self.session = session
 
     async def sign_up_by_email(self, email: str, password: str, nickname: str):
+        """
+        Sign up a user by email.
+
+        Args:
+            email: The user's email.
+            password: The user's password.
+            nickname: The user's nickname.
+
+        Returns:
+            tuple: A tuple containing the created user object and the refresh token.
+        """
         user = User(
             email=email,
             nickname=nickname,
@@ -37,6 +48,16 @@ class AuthService:
         return user, refresh_token
 
     async def sign_in_by_email(self, email: str, password: str):
+        """
+        Sign in a user using their email and password.
+
+        Args:
+            email: The user's email.
+            password: The user's password.
+
+        Returns:
+            Tuple[User, RefreshToken]: A tuple containing the signed-in user and the refresh token.
+        """
         res = await self.session.execute(sa.select(User).where(User.email == email))
         user = res.scalar_one_or_none()
 
@@ -72,10 +93,8 @@ class AuthService:
             )
         )
 
-        if old_token is None:
-            raise UnauthorizedError(ErrorEnum.INVALID_REFRESH_TOKEN)
-
-        old_token.validate()
+        if old_token is None or not old_token.is_valid:
+            raise ValidationError(ErrorEnum.INVALID_REFRESH_TOKEN)
 
         if old_token.is_stale:
             old_token.is_revoked = True
@@ -84,3 +103,40 @@ class AuthService:
             return new_refresh_token, True
 
         return old_token, False
+
+    async def verify_email(self, *, email: str, code: str, usage: VerificationUsage):
+        """
+        Verify the email address using the provided verification code.
+
+        Args:
+            email: The email address to verify.
+            code: The verification code.
+
+        Raises:
+            ValidationError: If the verification code is invalid.
+            NotFoundError: If the user associated with the email verification is not found.
+
+        Returns:
+            User: The user object with the verified email address.
+        """
+        verification = await self.session.scalar(
+            sa.select(EmailVerification).where(
+                EmailVerification.email == email,
+                EmailVerification.code == code,
+                EmailVerification.usage == usage,
+                EmailVerification.is_revoked.is_(False),
+            )
+        )
+
+        if verification is None or not verification.is_valid:
+            raise ValidationError(ErrorEnum.INVALID_VERIFICATION_CODE)
+
+        user = await self.session.scalar(sa.select(User).where(User.id == verification.user_id))
+
+        if user is None:
+            raise NotFoundError(ErrorEnum.USER_NOT_FOUND)
+
+        user.email_verified = True
+        await self.session.commit()
+
+        return user
