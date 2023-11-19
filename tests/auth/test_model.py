@@ -84,6 +84,15 @@ def test_refresh_token_validate_does_not_raise_error():
     refresh_token.validate()
 
 
+def test_refresh_token_from_user_id():
+    """RefreshToken model from user_id"""
+    user_id = uuid.uuid4()
+    refresh_token = RefreshToken.from_user_id(user_id)
+    assert refresh_token.user_id == user_id
+    assert refresh_token.token is not None
+    assert refresh_token.expires_at > datetime.datetime.now(datetime.UTC)
+
+
 def test_email_verification_is_expired():
     """Email verification is expired"""
     email_verification = EmailVerification(

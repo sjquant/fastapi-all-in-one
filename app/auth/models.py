@@ -26,6 +26,15 @@ class RefreshToken(Model, TimestampMixin):
         sa.Boolean, nullable=False, default=False, index=True, server_default=sa.false()
     )
 
+    @classmethod
+    def from_user_id(cls, user_id: UUID) -> RefreshToken:
+        return cls(
+            token=secrets.token_urlsafe(32),
+            expires_at=datetime.datetime.now(datetime.UTC)
+            + datetime.timedelta(seconds=config.refresh_token_expires_seconds),
+            user_id=user_id,
+        )
+
     @property
     def is_expired(self):
         return self.expires_at < datetime.datetime.now(datetime.UTC)
