@@ -1,5 +1,4 @@
 import datetime
-import secrets
 
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
@@ -7,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum
 from app.auth.models import RefreshToken
-from app.core.config import config
 from app.core.errors import NotFoundError, UnauthorizedError, ValidationError
 from app.user.models import User
 
@@ -32,12 +30,7 @@ class AuthService:
             raise e
 
         user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
-        refresh_token = RefreshToken(
-            user_id=user.id,
-            expires_at=datetime.datetime.now(tz=datetime.UTC)
-            + datetime.timedelta(seconds=config.refresh_token_expires_seconds),
-            token=secrets.token_urlsafe(32),
-        )
+        refresh_token = RefreshToken.from_user_id(user.id)
         self.session.add(refresh_token)
         await self.session.commit()
 
@@ -54,12 +47,7 @@ class AuthService:
             raise ValidationError(ErrorEnum.PASSWORD_DOES_NOT_MATCH)
 
         user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
-        refresh_token = RefreshToken(
-            user_id=user.id,
-            expires_at=datetime.datetime.now(tz=datetime.UTC)
-            + datetime.timedelta(seconds=config.refresh_token_expires_seconds),
-            token=secrets.token_urlsafe(32),
-        )
+        refresh_token = RefreshToken.from_user_id(user.id)
         self.session.add(refresh_token)
 
         await self.session.commit()
@@ -91,12 +79,7 @@ class AuthService:
 
         if old_token.is_stale:
             old_token.is_revoked = True
-            new_refresh_token = RefreshToken(
-                user_id=old_token.user_id,
-                expires_at=datetime.datetime.now(tz=datetime.UTC)
-                + datetime.timedelta(seconds=config.refresh_token_expires_seconds),
-                token=secrets.token_urlsafe(32),
-            )
+            new_refresh_token = RefreshToken.from_user_id(old_token.user_id)
             await self.session.commit()
             return new_refresh_token, True
 

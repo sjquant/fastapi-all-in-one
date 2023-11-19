@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from app.core.constants import BaseErrorEnum
 
 
@@ -24,3 +26,7 @@ class ErrorEnum(BaseErrorEnum):
         "INVALID_REFRESH_TOKEN",
         "Provided refresh token is invalid.",
     )
+
+
+class VerificationUsage(StrEnum):
+    SIGN_UP = "SIGN_UP"
