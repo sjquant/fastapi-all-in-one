@@ -4,10 +4,10 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class SignUpEmailSchema(BaseModel):
-    email: str
-    password: str
-    nickname: str
+class SignUpByCodeSchema(BaseModel):
+    email: str = Field(description="User email", examples=["example@example.com"])
+    code: str = Field(description="Verification code", examples=["ABCD1234"])
+    nickname: str = Field(description="User nickname", examples=["example"])
 
 
 class SignInEmailSchema(BaseModel):

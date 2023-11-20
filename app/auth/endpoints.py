@@ -11,7 +11,7 @@ from app.auth.dto import (
     AuthenticatedUser,
     SignInEmailSchema,
     SignInResponse,
-    SignUpEmailSchema,
+    SignUpByCodeSchema,
 )
 from app.auth.service import AuthService
 from app.core.config import config
@@ -37,11 +37,11 @@ async def sign_in_by_email(response: Response, session: SessionDep, data: SignIn
     return SignInResponse(access_token=access_token, user=AuthenticatedUser.model_validate(user))
 
 
-@router.post("/sign-up/email")
-async def sign_up_by_email(response: Response, session: SessionDep, data: SignUpEmailSchema):
+@router.post("/sign-up/by-code")
+async def sign_up_by_code(response: Response, session: SessionDep, data: SignUpByCodeSchema):
     auth_service = AuthService(session)
-    user, refresh_token = await auth_service.sign_up_by_email(
-        data.email, data.password, data.nickname
+    user, refresh_token = await auth_service.sign_up_by_code(
+        email=data.email, code=data.code, nickname=data.nickname
     )
     response.set_cookie(
         key="refresh_token",

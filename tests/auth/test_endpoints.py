@@ -6,10 +6,10 @@ import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.constants import ErrorEnum
+from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.deps import current_user
 from app.auth.dto import AuthenticatedUser, SignInResponse
-from app.auth.models import RefreshToken
+from app.auth.models import EmailVerification, RefreshToken
 from app.main import app
 from app.user.models import User
 
@@ -45,14 +45,23 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
     assert cast(RefreshToken, result).token == response.cookies["refresh_token"]
 
 
-async def test_signup_by_email(client: AsyncClient, session: AsyncSession):
+async def test_signup_by_code(client: AsyncClient, session: AsyncSession):
     """Test sign up by email"""
+    # given
+    email = "test@test.com"
+    verification = EmailVerification.random(
+        email=email,
+        usage=VerificationUsage.SIGN_UP,
+    )
+    session.add(verification)
+    await session.flush()
+
     # when
     response = await client.post(
-        "/auth/sign-up/email",
+        "/auth/sign-up/by-code",
         json={
-            "email": "test@test.com",
-            "password": "password123!",
+            "email": email,
+            "code": verification.code,
             "nickname": "testuser",
         },
     )

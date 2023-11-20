@@ -14,23 +14,12 @@ class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def sign_up_by_email(self, email: str, password: str, nickname: str):
-        """
-        Sign up a user by email.
-
-        Args:
-            email: The user's email.
-            password: The user's password.
-            nickname: The user's nickname.
-
-        Returns:
-            tuple: A tuple containing the created user object and the refresh token.
-        """
+    async def sign_up_by_code(self, *, email: str, code: str, nickname: str):
+        await self.verify_email(email=email, code=code, usage=VerificationUsage.SIGN_UP)
         user = User(
             email=email,
             nickname=nickname,
         )
-        user.set_password(password)
         self.session.add(user)
 
         try:

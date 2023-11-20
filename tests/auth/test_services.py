@@ -12,16 +12,19 @@ from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
 
-async def test_sign_up_by_email(session: AsyncSession):
+async def test_sign_up_by_code(session: AsyncSession):
     """Sign up by email works"""
     # given
-    service = AuthService(session)
     email = "test@test.com"
-    password = "password123!"
-    nickname = "testuser"
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
 
     # when
-    user, token = await service.sign_up_by_email(email, password, nickname)
+    service = AuthService(session)
+    user, token = await service.sign_up_by_code(
+        email=email, code=verification.code, nickname="testuser"
+    )
 
     # then
     actual = await session.get(User, user.id)
@@ -32,37 +35,49 @@ async def test_sign_up_by_email(session: AsyncSession):
 async def test_cannot_sign_up_by_duplicate_email(session: AsyncSession):
     """Cannot sign up by duplicate email"""
     # given
-    service = AuthService(session)
     email = "test@test.com"
-    password = "password123!"
-    nickname = "testuser"
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
 
-    await service.sign_up_by_email(email, password, nickname)
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    session.add(user)
+    await session.flush()
 
     # when & then
+    service = AuthService(session)
     with pytest.raises(ValidationError) as e:
-        await service.sign_up_by_email(email, password, "testuser2")
+        await service.sign_up_by_code(email=email, code=verification.code, nickname="someoneelse")
 
-    assert e.value.error_code == "USER_ALREADY_EXISTS"
-    assert e.value.message == "Specified user already exists."
+    assert e.value.error_code == ErrorEnum.USER_ALREADY_EXISTS.code
+    assert e.value.message == ErrorEnum.USER_ALREADY_EXISTS.message
 
 
 async def test_cannot_sign_up_by_duplicate_nickname(session: AsyncSession):
     """Cannot sign up by duplicate nickname"""
     # given
-    service = AuthService(session)
-    email = "test@test.com"
-    password = "password123!"
-    nickname = "testuser"
+    email = "test1@test.com"
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
 
-    await service.sign_up_by_email(email, password, nickname)
+    user = User(
+        email="test2@test.com",
+        nickname="testuser",
+    )
+    session.add(user)
+    await session.flush()
 
     # when & then
+    service = AuthService(session)
     with pytest.raises(ValidationError) as e:
-        await service.sign_up_by_email("test2@test.com", password, nickname)
+        await service.sign_up_by_code(email=email, code=verification.code, nickname="testuser")
 
-    assert e.value.error_code == "USER_ALREADY_EXISTS"
-    assert e.value.message == "Specified user already exists."
+    assert e.value.error_code == ErrorEnum.USER_ALREADY_EXISTS.code
+    assert e.value.message == ErrorEnum.USER_ALREADY_EXISTS.message
 
 
 async def test_sign_in_by_email(session: AsyncSession):
@@ -94,7 +109,6 @@ async def test_cannot_sign_in_by_email_with_wrong_password(session: AsyncSession
     """Cannot sign in by email with wrong password"""
     # given
     service = AuthService(session)
-
     email = "test@test.com"
     nickname = "testuser"
     password = "password123!"
@@ -146,9 +160,16 @@ async def test_renew_refresh_token_if_stale(
     """Renew refresh token if old token is stale"""
     # given
     mocker.patch.object(config, "refresh_token_stale_seconds", 0.01)
+    email = "test@test.com"
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
     service = AuthService(session)
 
-    _, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+    _, old_token = await service.sign_up_by_code(
+        email=email, code=verification.code, nickname="testuser"
+    )
 
     # when
     await asyncio.sleep(0.02)
@@ -164,9 +185,16 @@ async def test_do_not_renew_refresh_token_if_not_stale(
 ) -> None:
     """If old token is not stale, do not renew refresh token and return None"""
     # given
-    service = AuthService(session)
+    email = "test@test.com"
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
 
-    _, old_token = await service.sign_up_by_email("test@test.com", "test123!", "testuser")
+    # when
+    service = AuthService(session)
+    _, old_token = await service.sign_up_by_code(
+        email=email, code=verification.code, nickname="testuser"
+    )
     new_token, is_renewed = await service.renew_refresh_token_if_needed(old_token.token)
 
     # then
