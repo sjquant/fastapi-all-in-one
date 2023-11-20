@@ -2,18 +2,16 @@ import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends, Response
+from fastapi import APIRouter, Cookie, Response
 from jose import jwt
 
-from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.deps import require_auth
+from app.auth.constants import ErrorEnum
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
     SignInEmailSchema,
     SignInResponse,
     SignUpEmailSchema,
-    VerifyEmailSchema,
 )
 from app.auth.service import AuthService
 from app.core.config import config
@@ -84,17 +82,6 @@ async def refresh_token(
     access_token = generate_access_token(refresh_token_model.user_id)
 
     return AccessTokenResponse(access_token=access_token)
-
-
-@router.post("/verify-email", dependencies=[Depends(require_auth())])
-async def verify_email(session: SessionDep, data: VerifyEmailSchema):
-    auth_service = AuthService(session=session)
-
-    await auth_service.verify_email(
-        email=data.email,
-        code=data.code,
-        usage=VerificationUsage.SIGN_UP,
-    )
 
 
 def generate_access_token(user_id: UUID):

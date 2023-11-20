@@ -178,15 +178,7 @@ async def test_verify_email(session: AsyncSession):
     """Verify email works"""
     # given
     email = "test@test.com"
-    user = User(
-        email=email,
-        nickname="testuser",
-    )
-    user.set_password("password123!")
-    session.add(user)
-    await session.flush()
-
-    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
     session.add(verification)
     await session.flush()
 
@@ -194,24 +186,12 @@ async def test_verify_email(session: AsyncSession):
     service = AuthService(session)
     await service.verify_email(email=email, code=verification.code, usage=VerificationUsage.SIGN_UP)
 
-    # then
-    await session.refresh(user)
-    assert user.email_verified
-
 
 async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
     """Cannot verify email with invalid code"""
     # given
     email = "test@test.com"
-    user = User(
-        email=email,
-        nickname="testuser",
-    )
-    user.set_password("password123!")
-    session.add(user)
-    await session.flush()
-
-    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
     session.add(verification)
     await session.flush()
 
@@ -228,15 +208,7 @@ async def test_cannot_verify_email_with_different_email(session: AsyncSession):
     """Cannot verify email with different email"""
     # given
     email = "test@test.com"
-    user = User(
-        email=email,
-        nickname="testuser",
-    )
-    user.set_password("password123!")
-    session.add(user)
-    await session.flush()
-
-    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
     session.add(verification)
     await session.flush()
 

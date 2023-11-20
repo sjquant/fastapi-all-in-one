@@ -106,18 +106,18 @@ class AuthService:
 
     async def verify_email(self, *, email: str, code: str, usage: VerificationUsage):
         """
-        Verify the email address using the provided verification code.
+        Verify the email using the provided verification code.
 
         Args:
             email: The email address to verify.
             code: The verification code.
+            usage: The usage type of the verification.
 
         Raises:
             ValidationError: If the verification code is invalid.
-            NotFoundError: If the user associated with the email verification is not found.
 
         Returns:
-            User: The user object with the verified email address.
+            None if the verification is successful
         """
         verification = await self.session.scalar(
             sa.select(EmailVerification).where(
@@ -130,13 +130,3 @@ class AuthService:
 
         if verification is None or not verification.is_valid:
             raise ValidationError(ErrorEnum.INVALID_VERIFICATION_CODE)
-
-        user = await self.session.scalar(sa.select(User).where(User.id == verification.user_id))
-
-        if user is None:
-            raise NotFoundError(ErrorEnum.USER_NOT_FOUND)
-
-        user.email_verified = True
-        await self.session.commit()
-
-        return user

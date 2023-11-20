@@ -1,8 +1,8 @@
 """
 
-Revision ID: df3b29c30acc
+Revision ID: b2971d89afb2
 Revises: 61fd7ddbb63e
-Create Date: 2023-11-19 22:03:10.239476
+Create Date: 2023-11-21 00:31:21.873263
 
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 from app.core.db import GUID
 
 # revision identifiers, used by Alembic.
-revision: str = "df3b29c30acc"
+revision: str = "b2971d89afb2"
 down_revision: str | None = "61fd7ddbb63e"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("code", sa.String(), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("verified", sa.Boolean(), nullable=False),
-        sa.Column("user_id", GUID(), nullable=False),
+        sa.Column("user_id", GUID(), nullable=True),
         sa.Column("usage", sa.String(), nullable=False),
         sa.Column("is_revoked", sa.Boolean(), nullable=False),
         sa.Column("id", GUID(), nullable=False),
