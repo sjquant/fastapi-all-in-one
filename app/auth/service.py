@@ -14,8 +14,10 @@ class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def sign_up_by_code(self, *, email: str, code: str, nickname: str):
-        await self.verify_email(email=email, code=code, usage=VerificationUsage.SIGN_UP)
+    async def sign_up_by_email(self, *, email: str, code: str, state: str, nickname: str):
+        await self.verify_email(
+            email=email, code=code, state=state, usage=VerificationUsage.SIGN_UP
+        )
         user = User(
             email=email,
             nickname=nickname,
@@ -93,7 +95,7 @@ class AuthService:
 
         return old_token, False
 
-    async def verify_email(self, *, email: str, code: str, usage: VerificationUsage):
+    async def verify_email(self, *, email: str, code: str, state: str, usage: VerificationUsage):
         """
         Verify the email using the provided verification code.
 
@@ -113,6 +115,7 @@ class AuthService:
                 EmailVerification.email == email,
                 EmailVerification.code == code,
                 EmailVerification.usage == usage,
+                EmailVerification.state == state,
                 EmailVerification.is_revoked.is_(False),
             )
         )

@@ -22,8 +22,8 @@ async def test_sign_up_by_code(session: AsyncSession):
 
     # when
     service = AuthService(session)
-    user, token = await service.sign_up_by_code(
-        email=email, code=verification.code, nickname="testuser"
+    user, token = await service.sign_up_by_email(
+        email=email, code=verification.code, state=verification.state, nickname="testuser"
     )
 
     # then
@@ -50,7 +50,9 @@ async def test_cannot_sign_up_by_duplicate_email(session: AsyncSession):
     # when & then
     service = AuthService(session)
     with pytest.raises(ValidationError) as e:
-        await service.sign_up_by_code(email=email, code=verification.code, nickname="someoneelse")
+        await service.sign_up_by_email(
+            email=email, code=verification.code, state=verification.state, nickname="someoneelse"
+        )
 
     assert e.value.error_code == ErrorEnum.USER_ALREADY_EXISTS.code
     assert e.value.message == ErrorEnum.USER_ALREADY_EXISTS.message
@@ -74,7 +76,9 @@ async def test_cannot_sign_up_by_duplicate_nickname(session: AsyncSession):
     # when & then
     service = AuthService(session)
     with pytest.raises(ValidationError) as e:
-        await service.sign_up_by_code(email=email, code=verification.code, nickname="testuser")
+        await service.sign_up_by_email(
+            email=email, code=verification.code, state=verification.state, nickname="testuser"
+        )
 
     assert e.value.error_code == ErrorEnum.USER_ALREADY_EXISTS.code
     assert e.value.message == ErrorEnum.USER_ALREADY_EXISTS.message
@@ -167,8 +171,8 @@ async def test_renew_refresh_token_if_stale(
 
     service = AuthService(session)
 
-    _, old_token = await service.sign_up_by_code(
-        email=email, code=verification.code, nickname="testuser"
+    _, old_token = await service.sign_up_by_email(
+        email=email, code=verification.code, state=verification.state, nickname="testuser"
     )
 
     # when
@@ -192,8 +196,8 @@ async def test_do_not_renew_refresh_token_if_not_stale(
 
     # when
     service = AuthService(session)
-    _, old_token = await service.sign_up_by_code(
-        email=email, code=verification.code, nickname="testuser"
+    _, old_token = await service.sign_up_by_email(
+        email=email, code=verification.code, state=verification.state, nickname="testuser"
     )
     new_token, is_renewed = await service.renew_refresh_token_if_needed(old_token.token)
 
@@ -212,7 +216,12 @@ async def test_verify_email(session: AsyncSession):
 
     # when
     service = AuthService(session)
-    await service.verify_email(email=email, code=verification.code, usage=VerificationUsage.SIGN_UP)
+    await service.verify_email(
+        email=email,
+        code=verification.code,
+        state=verification.state,
+        usage=VerificationUsage.SIGN_UP,
+    )
 
 
 async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
@@ -226,7 +235,12 @@ async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
     # when & then
     service = AuthService(session)
     with pytest.raises(ValidationError) as e:
-        await service.verify_email(email=email, code="invalidcode", usage=VerificationUsage.SIGN_UP)
+        await service.verify_email(
+            email=email,
+            code="invalidcode",
+            state=verification.state,
+            usage=VerificationUsage.SIGN_UP,
+        )
 
     assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
     assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message
@@ -244,7 +258,32 @@ async def test_cannot_verify_email_with_different_email(session: AsyncSession):
     service = AuthService(session)
     with pytest.raises(ValidationError) as e:
         await service.verify_email(
-            email="different@test.com", code=verification.code, usage=VerificationUsage.SIGN_UP
+            email="different@test.com",
+            code=verification.code,
+            state=verification.state,
+            usage=VerificationUsage.SIGN_UP,
+        )
+
+    assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
+    assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message
+
+
+async def test_cannot_verify_email_with_different_state(session: AsyncSession):
+    """Cannot verify email with different state"""
+    # given
+    email = "test@test.com"
+    verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(verification)
+    await session.flush()
+
+    # when & then
+    service = AuthService(session)
+    with pytest.raises(ValidationError) as e:
+        await service.verify_email(
+            email=email,
+            code=verification.code,
+            state="differentstate",
+            usage=VerificationUsage.SIGN_UP,
         )
 
     assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code

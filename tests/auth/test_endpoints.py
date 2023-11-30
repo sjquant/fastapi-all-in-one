@@ -58,10 +58,11 @@ async def test_signup_by_code(client: AsyncClient, session: AsyncSession):
 
     # when
     response = await client.post(
-        "/auth/sign-up/by-code",
+        "/auth/sign-up/email",
         json={
             "email": email,
             "code": verification.code,
+            "state": verification.state,
             "nickname": "testuser",
         },
     )
