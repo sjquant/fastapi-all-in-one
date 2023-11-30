@@ -62,6 +62,7 @@ class EmailVerification(Model, TimestampMixin):
 
     email: Mapped[str] = mapped_column(sa.String, nullable=False, index=True)
     code: Mapped[str] = mapped_column(sa.String, nullable=False)
+    state: Mapped[str] = mapped_column(sa.String, nullable=False)
     expires_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False
     )
@@ -86,9 +87,11 @@ class EmailVerification(Model, TimestampMixin):
             EmailVerification: The generated EmailVerification instance.
         """
         code = "".join(secrets.choice("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(8))
+        state = secrets.token_urlsafe(32)
         return cls(
             email=email,
             code=code,
+            state=state,
             expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=3600),
             user_id=user_id,
             usage=usage,
