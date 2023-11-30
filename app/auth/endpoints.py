@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Response
 from jose import jwt
+from pydantic import EmailStr
 
 from app.auth.constants import ErrorEnum
 from app.auth.dto import (
@@ -12,6 +13,7 @@ from app.auth.dto import (
     SignInEmailSchema,
     SignInResponse,
     SignUpEmailSchema,
+    SignUpStatusResponse,
 )
 from app.auth.service import AuthService
 from app.core.config import config
@@ -53,6 +55,14 @@ async def sign_up_by_code(response: Response, session: SessionDep, data: SignUpE
     access_token = generate_access_token(user.id)
 
     return SignInResponse(access_token=access_token, user=AuthenticatedUser.model_validate(user))
+
+
+@router.get("/sign-up-status")
+async def sign_up_status(email: EmailStr):
+    return SignUpStatusResponse(
+        has_account=True,
+        has_password=False,
+    )
 
 
 @router.post("/refresh-token")
