@@ -86,13 +86,17 @@ class EmailVerification(Model, TimestampMixin):
         Returns:
             EmailVerification: The generated EmailVerification instance.
         """
-        code = "".join(secrets.choice("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(8))
+        code = "".join(
+            secrets.choice("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+            for _ in range(config.email_verification_code_length)
+        )
         state = secrets.token_urlsafe(32)
         return cls(
             email=email,
             code=code,
             state=state,
-            expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=3600),
+            expires_at=datetime.datetime.now(datetime.UTC)
+            + datetime.timedelta(seconds=config.email_verificaton_token_expires_seconds),
             user_id=user_id,
             usage=usage,
         )
