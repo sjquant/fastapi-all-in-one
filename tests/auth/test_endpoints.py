@@ -139,8 +139,8 @@ async def test_cannot_refresh_token_without_refresh_token(
     }
 
 
-async def test_sign_up_status(client: AsyncClient, session: AsyncSession):
-    """Test sign up status"""
+async def test_signup_status(client: AsyncClient, session: AsyncSession):
+    """Test get signup status"""
     # given
     user = User(
         email="test@test.com",
@@ -150,7 +150,7 @@ async def test_sign_up_status(client: AsyncClient, session: AsyncSession):
     await session.flush()
 
     # when
-    response = await client.get("/auth/sign-up-status", params={"email": user.email})
+    response = await client.post("/auth/get-signup-status", json={"email": user.email})
 
     # then
     assert response.status_code == 200

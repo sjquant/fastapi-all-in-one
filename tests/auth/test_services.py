@@ -5,6 +5,7 @@ import pytest_mock
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.dto import SignupStatus
 from app.auth.models import EmailVerification
 from app.auth.service import AuthService
 from app.core.config import config
@@ -288,3 +289,55 @@ async def test_cannot_verify_email_with_different_state(session: AsyncSession):
 
     assert e.value.error_code == ErrorEnum.INVALID_VERIFICATION_CODE.code
     assert e.value.message == ErrorEnum.INVALID_VERIFICATION_CODE.message
+
+
+async def test_signup_status(session: AsyncSession):
+    """Signup status with no password works"""
+    # given
+    email = "test@test.com"
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    session.add(user)
+    await session.flush()
+
+    # when
+    service = AuthService(session)
+    res = await service.get_signup_status(email)
+
+    # then
+    assert res == SignupStatus(has_account=True, has_password=False)
+
+
+async def test_signup_status_with_password(session: AsyncSession):
+    """Signup status with password works"""
+    # given
+    email = "test@test.com"
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    user.set_password("password123!")
+    session.add(user)
+    await session.flush()
+
+    # when
+    service = AuthService(session)
+    res = await service.get_signup_status(email)
+
+    # then
+    assert res == SignupStatus(has_account=True, has_password=True)
+
+
+async def test_signup_status_with_no_account(session: AsyncSession):
+    """Signup status with no account works"""
+    # given
+    email = "no-account@test.com"
+
+    # when
+    service = AuthService(session)
+    res = await service.get_signup_status(email)
+
+    # then
+    assert res == SignupStatus(has_account=False, has_password=False)

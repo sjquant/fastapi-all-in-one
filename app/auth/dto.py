@@ -47,7 +47,7 @@ class AccessTokenResponse(BaseModel):
     )
 
 
-class SignUpStatusResponse(BaseModel):
+class SignupStatus(BaseModel):
     has_account: bool = Field(
         description="Whether a specified email is signed up or not", examples=[True]
     )

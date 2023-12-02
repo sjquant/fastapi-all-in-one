@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.dto import SignupStatus
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
@@ -122,3 +123,20 @@ class AuthService:
 
         if verification is None or not verification.is_valid:
             raise ValidationError(ErrorEnum.INVALID_VERIFICATION_CODE)
+
+    async def get_signup_status(self, email: str):
+        """
+        Get the sign up status of the email.
+
+        Args:
+            email: The email address to check.
+
+        Returns:
+            A tuple containing whether the email is signed up and whether the email has a password.
+        """
+        user = await self.session.scalar(sa.select(User).where(User.email == email))
+
+        has_account = user is not None
+        has_password = user is not None and user.hashed_password is not None
+
+        return SignupStatus(has_account=has_account, has_password=has_password)
