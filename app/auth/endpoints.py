@@ -39,7 +39,7 @@ async def sign_in_by_email(response: Response, session: SessionDep, data: SignIn
 
 
 @router.post("/sign-up/email")
-async def sign_up_by_code(response: Response, session: SessionDep, data: SignUpEmailSchema):
+async def sign_up_by_email(response: Response, session: SessionDep, data: SignUpEmailSchema):
     auth_service = AuthService(session)
     user, refresh_token = await auth_service.sign_up_by_email(
         email=data.email, code=data.code, nickname=data.nickname, state=data.state

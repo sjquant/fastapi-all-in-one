@@ -13,7 +13,7 @@ from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
 
-async def test_sign_up_by_code(session: AsyncSession):
+async def test_sign_up_by_email(session: AsyncSession):
     """Sign up by email works"""
     # given
     email = "test@test.com"
