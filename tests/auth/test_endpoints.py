@@ -47,12 +47,22 @@ async def test_signin_by_email(client: AsyncClient, session: AsyncSession):
 
 async def test_signup_by_email(client: AsyncClient, session: AsyncSession):
     """Test sign up by email"""
+    # given
+    email = "test@test.com"
+    verification = EmailVerification.random(
+        email=email,
+        usage=VerificationUsage.SIGN_UP,
+    )
+    session.add(verification)
+    await session.flush()
+
     # when
     response = await client.post(
         "/auth/sign-up/email",
         json={
-            "email": "test@test.com",
-            "password": "password123!",
+            "email": email,
+            "code": verification.code,
+            "state": verification.state,
             "nickname": "testuser",
         },
     )
@@ -129,30 +139,22 @@ async def test_cannot_refresh_token_without_refresh_token(
     }
 
 
-async def test_verify_email(client: AsyncClient, session: AsyncSession):
-    """Test verify email"""
+async def test_signup_status(client: AsyncClient, session: AsyncSession):
+    """Test get signup status"""
     # given
     user = User(
         email="test@test.com",
         nickname="testuser",
     )
-    user.set_password("password123!")
     session.add(user)
-    await session.flush()
-    app.dependency_overrides[current_user] = lambda: user
-
-    verification = EmailVerification.from_user(user, VerificationUsage.SIGN_UP)
-    session.add(verification)
     await session.flush()
 
     # when
-    response = await client.post(
-        "/auth/verify-email",
-        json={
-            "email": "test@test.com",
-            "code": verification.code,
-        },
-    )
+    response = await client.post("/auth/get-signup-status", json={"email": user.email})
 
     # then
     assert response.status_code == 200
+    assert response.json() == {
+        "has_account": True,
+        "has_password": False,
+    }

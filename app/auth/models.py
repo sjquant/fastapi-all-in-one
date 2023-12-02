@@ -5,12 +5,11 @@ import secrets
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.auth.constants import VerificationUsage
 from app.core.config import config
 from app.core.db import Model, TimestampMixin
-from app.user.models import User
 
 
 class RefreshToken(Model, TimestampMixin):
@@ -27,6 +26,15 @@ class RefreshToken(Model, TimestampMixin):
 
     @classmethod
     def from_user_id(cls, user_id: UUID) -> RefreshToken:
+        """
+        Create a new RefreshToken instance from a user ID.
+
+        Args:
+            user_id: The ID of the user.
+
+        Returns:
+            RefreshToken: The newly created RefreshToken instance.
+        """
         return cls(
             token=secrets.token_urlsafe(32),
             expires_at=datetime.datetime.now(datetime.UTC)
@@ -54,24 +62,38 @@ class EmailVerification(Model, TimestampMixin):
 
     email: Mapped[str] = mapped_column(sa.String, nullable=False, index=True)
     code: Mapped[str] = mapped_column(sa.String, nullable=False)
+    state: Mapped[str] = mapped_column(sa.String, nullable=False)
     expires_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False
     )
     verified: Mapped[bool] = mapped_column(sa.Boolean, default=False, nullable=False)
-    user_id: Mapped[int] = mapped_column(sa.ForeignKey("user__users.id"), nullable=False)
+    user_id: Mapped[UUID | None] = mapped_column(sa.ForeignKey("user__users.id"), nullable=True)
     usage: Mapped[VerificationUsage] = mapped_column(sa.String, nullable=False)
     is_revoked: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False, index=True)
 
-    user: Mapped[User] = relationship("User")
-
     @classmethod
-    def from_user(cls, user: User, usage: VerificationUsage) -> EmailVerification:
+    def random(
+        cls, *, email: str, usage: VerificationUsage, user_id: UUID | None = None
+    ) -> EmailVerification:
+        """
+        Generate a random EmailVerification instance.
+
+        Args:
+            email: The email address associated with the verification.
+            usage : The usage of the verification.
+            user_id: The ID of the user associated with the verification. Defaults to None.
+
+        Returns:
+            EmailVerification: The generated EmailVerification instance.
+        """
         code = "".join(secrets.choice("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(8))
+        state = secrets.token_urlsafe(32)
         return cls(
-            email=user.email,
+            email=email,
             code=code,
+            state=state,
             expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=3600),
-            user_id=user.id,
+            user_id=user_id,
             usage=usage,
         )
 

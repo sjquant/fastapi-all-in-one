@@ -2,18 +2,17 @@ import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends, Response
+from fastapi import APIRouter, Body, Cookie, Response
 from jose import jwt
+from pydantic import EmailStr
 
-from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.deps import require_auth
+from app.auth.constants import ErrorEnum
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
     SignInEmailSchema,
     SignInResponse,
     SignUpEmailSchema,
-    VerifyEmailSchema,
 )
 from app.auth.service import AuthService
 from app.core.config import config
@@ -43,7 +42,7 @@ async def sign_in_by_email(response: Response, session: SessionDep, data: SignIn
 async def sign_up_by_email(response: Response, session: SessionDep, data: SignUpEmailSchema):
     auth_service = AuthService(session)
     user, refresh_token = await auth_service.sign_up_by_email(
-        data.email, data.password, data.nickname
+        email=data.email, code=data.code, nickname=data.nickname, state=data.state
     )
     response.set_cookie(
         key="refresh_token",
@@ -55,6 +54,17 @@ async def sign_up_by_email(response: Response, session: SessionDep, data: SignUp
     access_token = generate_access_token(user.id)
 
     return SignInResponse(access_token=access_token, user=AuthenticatedUser.model_validate(user))
+
+
+@router.post("/get-signup-status")
+async def get_signup_status(
+    session: SessionDep,
+    email: EmailStr = Body(..., embed=True),
+):
+    auth_service = AuthService(session)
+    res = await auth_service.get_signup_status(email)
+
+    return res
 
 
 @router.post("/refresh-token")
@@ -84,17 +94,6 @@ async def refresh_token(
     access_token = generate_access_token(refresh_token_model.user_id)
 
     return AccessTokenResponse(access_token=access_token)
-
-
-@router.post("/verify-email", dependencies=[Depends(require_auth())])
-async def verify_email(session: SessionDep, data: VerifyEmailSchema):
-    auth_service = AuthService(session=session)
-
-    await auth_service.verify_email(
-        email=data.email,
-        code=data.code,
-        usage=VerificationUsage.SIGN_UP,
-    )
 
 
 def generate_access_token(user_id: UUID):

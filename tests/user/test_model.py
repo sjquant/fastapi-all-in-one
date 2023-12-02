@@ -74,14 +74,6 @@ def test_verify_password_fails():
     assert not user.verify_password("notpassword123!")
 
 
-def test_set_unusable_password():
-    """Unusable password works"""
-    user = User(nickname="test", email="test@email.com")
-    user.set_unusable_password()
-    assert user.hashed_password is None
-    assert not user.verify_password("cannotverify")
-
-
 def test_validate_email():
     """Cannot create user with invalid email"""
     with pytest.raises(ValidationError) as e:

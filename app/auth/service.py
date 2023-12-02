@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
+from app.auth.dto import SignupStatus
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
@@ -14,23 +15,14 @@ class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def sign_up_by_email(self, email: str, password: str, nickname: str):
-        """
-        Sign up a user by email.
-
-        Args:
-            email: The user's email.
-            password: The user's password.
-            nickname: The user's nickname.
-
-        Returns:
-            tuple: A tuple containing the created user object and the refresh token.
-        """
+    async def sign_up_by_email(self, *, email: str, code: str, state: str, nickname: str):
+        await self.verify_email(
+            email=email, code=code, state=state, usage=VerificationUsage.SIGN_UP
+        )
         user = User(
             email=email,
             nickname=nickname,
         )
-        user.set_password(password)
         self.session.add(user)
 
         try:
@@ -104,26 +96,27 @@ class AuthService:
 
         return old_token, False
 
-    async def verify_email(self, *, email: str, code: str, usage: VerificationUsage):
+    async def verify_email(self, *, email: str, code: str, state: str, usage: VerificationUsage):
         """
-        Verify the email address using the provided verification code.
+        Verify the email using the provided verification code.
 
         Args:
             email: The email address to verify.
             code: The verification code.
+            usage: The usage type of the verification.
 
         Raises:
             ValidationError: If the verification code is invalid.
-            NotFoundError: If the user associated with the email verification is not found.
 
         Returns:
-            User: The user object with the verified email address.
+            None if the verification is successful
         """
         verification = await self.session.scalar(
             sa.select(EmailVerification).where(
                 EmailVerification.email == email,
                 EmailVerification.code == code,
                 EmailVerification.usage == usage,
+                EmailVerification.state == state,
                 EmailVerification.is_revoked.is_(False),
             )
         )
@@ -131,12 +124,19 @@ class AuthService:
         if verification is None or not verification.is_valid:
             raise ValidationError(ErrorEnum.INVALID_VERIFICATION_CODE)
 
-        user = await self.session.scalar(sa.select(User).where(User.id == verification.user_id))
+    async def get_signup_status(self, email: str):
+        """
+        Get the sign up status of the email.
 
-        if user is None:
-            raise NotFoundError(ErrorEnum.USER_NOT_FOUND)
+        Args:
+            email: The email address to check.
 
-        user.email_verified = True
-        await self.session.commit()
+        Returns:
+            A tuple containing whether the email is signed up and whether the email has a password.
+        """
+        user = await self.session.scalar(sa.select(User).where(User.email == email))
 
-        return user
+        has_account = user is not None
+        has_password = user is not None and user.hashed_password is not None
+
+        return SignupStatus(has_account=has_account, has_password=has_password)

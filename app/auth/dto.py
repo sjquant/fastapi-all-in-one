@@ -5,9 +5,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SignUpEmailSchema(BaseModel):
-    email: str
-    password: str
-    nickname: str
+    email: str = Field(description="User email", examples=["example@example.com"])
+    code: str = Field(description="Verification code", examples=["ABCD1234"])
+    state: str = Field(
+        description="State to prevent csrf and replay attacks", examples=["xxxxxxxxxxxx"]
+    )
+    nickname: str = Field(description="User nickname", examples=["example"])
 
 
 class SignInEmailSchema(BaseModel):
@@ -41,4 +44,13 @@ class SignInResponse(BaseModel):
 class AccessTokenResponse(BaseModel):
     access_token: str = Field(
         description="Access token", examples=["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+    )
+
+
+class SignupStatus(BaseModel):
+    has_account: bool = Field(
+        description="Whether a specified email is signed up or not", examples=[True]
+    )
+    has_password: bool = Field(
+        description="Whether a specified email has password or not", examples=[True]
     )

@@ -22,9 +22,6 @@ class User(Model, TimestampMixin):
     last_logged_in: Mapped[datetime.datetime] = mapped_column(
         sa.TIMESTAMP(timezone=True), nullable=True
     )
-    email_verified: Mapped[bool] = mapped_column(
-        sa.Boolean, default=False, server_default=sa.false(), nullable=False
-    )
 
     @staticmethod
     def anonymous():
@@ -59,9 +56,6 @@ class User(Model, TimestampMixin):
         self.hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode(
             "utf-8"
         )
-
-    def set_unusable_password(self):
-        self.hashed_password = None
 
     def verify_password(self, password: str):
         if self.hashed_password is None:
