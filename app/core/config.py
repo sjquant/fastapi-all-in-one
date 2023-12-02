@@ -18,6 +18,8 @@ class Config(BaseSettings):
     jwt_expires_seconds: int = 30 * MINUTE
     refresh_token_expires_seconds: int = 30 * DAY  # Refresh token expires after this
     refresh_token_stale_seconds: int = 7 * DAY  # Refresh token renewed if older than this
+    email_verificaton_token_expires_seconds: int = 30 * MINUTE
+    email_verification_code_length: int = 8
 
     model_config = SettingsConfigDict(env_file=".env")
 
