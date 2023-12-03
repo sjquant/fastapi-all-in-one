@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, validates
 from app.core.config import config
 from app.core.db import Model, TimestampMixin
 from app.core.errors import ValidationError
+from app.core.utils import is_valid_email
 from app.user.constants import ErrorEnum
 
 
@@ -64,6 +65,6 @@ class User(Model, TimestampMixin):
 
     @validates("email")
     def validate_email(self, key: str, email: str):
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        if not is_valid_email(email):
             raise ValidationError(ErrorEnum.INVALID_EMAIL)
         return email
