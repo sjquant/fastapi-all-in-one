@@ -1,7 +1,9 @@
 import asyncio
+from unittest.mock import Mock
 
 import pytest
 import pytest_mock
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
@@ -9,6 +11,7 @@ from app.auth.dto import SignupStatus
 from app.auth.models import EmailVerification
 from app.auth.service import AuthService
 from app.core.config import config
+from app.core.email import EmailBackendBase
 from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
@@ -341,3 +344,66 @@ async def test_signup_status_with_no_account(session: AsyncSession):
 
     # then
     assert res == SignupStatus(has_account=False, has_password=False)
+
+
+async def test_send_signup_email(session: AsyncSession):
+    """Send signup email works"""
+    # given
+    email = "test@test.com"
+    email_backend = Mock(spec=EmailBackendBase)
+
+    # when
+    service = AuthService(session)
+    state = await service.send_signup_email(email_backend, email)
+
+    # then
+    actual = await session.scalar(
+        sa.select(EmailVerification).where(EmailVerification.email == email)
+    )
+    assert actual.state == state  # type: ignore
+
+
+async def test_send_signup_email_with_existing_email(session: AsyncSession):
+    """Send signup email with existing email raises error"""
+    # given
+    email = "test@test.com"
+    email_backend = Mock(spec=EmailBackendBase)
+    user = User(
+        email=email,
+        nickname="testuser",
+    )
+    session.add(user)
+    await session.flush()
+    service = AuthService(session)
+
+    # when & then
+    with pytest.raises(ValidationError) as e:
+        await service.send_signup_email(email_backend, email)
+
+    assert e.value.error_code == ErrorEnum.USER_ALREADY_EXISTS.code
+    assert e.value.message == ErrorEnum.USER_ALREADY_EXISTS.message
+
+
+async def test_send_signup_email_with_existing_verification(session: AsyncSession):
+    """Send signup email with existing verification revokes the old one"""
+    # given
+    email = "test@test.com"
+    email_backend = Mock(spec=EmailBackendBase)
+    old_verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+    session.add(old_verification)
+    await session.flush()
+    service = AuthService(session)
+
+    # when
+    await service.send_signup_email(email_backend, email)
+
+    # then
+    await session.refresh(old_verification)
+    assert old_verification.is_revoked
+
+    new_verification = await session.scalar(
+        sa.select(EmailVerification).where(
+            EmailVerification.email == email, EmailVerification.is_revoked.is_(False)
+        )
+    )
+    assert new_verification != old_verification
