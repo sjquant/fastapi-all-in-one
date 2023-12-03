@@ -154,7 +154,11 @@ class AuthService:
         Returns:
             The state of the email verification.
         """
-        prev_verifications = await self.session.scalars(
+        user = await self.session.scalar(sa.select(User).where(User.email == email))
+        if user:
+            raise ValidationError(ErrorEnum.USER_ALREADY_EXISTS)
+
+        old_verifications = await self.session.scalars(
             sa.select(EmailVerification).where(
                 EmailVerification.email == email,
                 EmailVerification.is_revoked.is_(False),
@@ -162,7 +166,7 @@ class AuthService:
             )
         )
 
-        for each in prev_verifications:
+        for each in old_verifications:
             each.is_revoked = True
 
         verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
