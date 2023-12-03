@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import config
 from app.core.db import DB
-from app.core.email import DebugEmailBackend
+from app.core.email import DebugEmailBackend, EmailBackendBase
 
 
 @cache
@@ -24,3 +24,4 @@ async def session(request: Request, db: Annotated[DB, Depends(db)]):
 
 
 SessionDep = Annotated[AsyncSession, Depends(session)]
+EmailBackendDep = Annotated[EmailBackendBase, Depends(email_backend)]

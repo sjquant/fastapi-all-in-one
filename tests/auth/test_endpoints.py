@@ -1,7 +1,7 @@
 import datetime
 import secrets
 from typing import cast
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import sqlalchemy as sa
 from httpx import AsyncClient
@@ -11,6 +11,9 @@ from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.deps import current_user
 from app.auth.dto import AuthenticatedUser, SignInResponse
 from app.auth.models import EmailVerification, RefreshToken
+from app.core.config import config
+from app.core.deps import email_backend
+from app.core.email import EmailBackendBase
 from app.main import app
 from app.user.models import User
 
@@ -163,11 +166,19 @@ async def test_signup_status(client: AsyncClient, session: AsyncSession):
 
 async def test_send_signup_email(client: AsyncClient, session: AsyncSession):
     """Test send signup email"""
+    # given
+    email_backend_mock = Mock(spec=EmailBackendBase)
+    app.dependency_overrides[email_backend] = lambda: email_backend_mock
+    recipient_email = "test@test.com"
+
     # when
-    response = await client.post("/auth/send-signup-email", json={"email": "test@test.com"})
+    response = await client.post("/auth/send-signup-email", json={"email": recipient_email})
 
     # then
     assert response.status_code == 200
     assert response.json() == {
         "state": ANY,
     }
+    email_backend_mock.send.assert_called_with(  # type: ignore
+        sender=config.email_sender, recipients=[recipient_email], subject=ANY, body_plain=ANY
+    )
