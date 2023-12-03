@@ -10,13 +10,14 @@ from app.auth.constants import ErrorEnum
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
+    SendSignupEmailResponse,
     SignInEmailSchema,
     SignInResponse,
     SignUpEmailSchema,
 )
 from app.auth.service import AuthService
 from app.core.config import config
-from app.core.deps import SessionDep
+from app.core.deps import EmailBackendDep, SessionDep
 from app.core.errors import ValidationError
 
 router = APIRouter()
@@ -59,7 +60,7 @@ async def sign_up_by_email(response: Response, session: SessionDep, data: SignUp
 @router.post("/get-signup-status")
 async def get_signup_status(
     session: SessionDep,
-    email: EmailStr = Body(..., embed=True),
+    email: Annotated[EmailStr, Body(..., embed=True)],
 ):
     auth_service = AuthService(session)
     res = await auth_service.get_signup_status(email)
@@ -94,6 +95,17 @@ async def refresh_token(
     access_token = generate_access_token(refresh_token_model.user_id)
 
     return AccessTokenResponse(access_token=access_token)
+
+
+@router.post("/send-signup-email")
+async def send_signup_email(
+    session: SessionDep,
+    email_backend: EmailBackendDep,
+    email: Annotated[EmailStr, Body(..., embed=True)],
+):
+    auth_service = AuthService(session)
+    state = await auth_service.send_signup_email(email_backend, email)
+    return SendSignupEmailResponse(state=state)
 
 
 def generate_access_token(user_id: UUID):

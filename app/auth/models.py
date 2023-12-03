@@ -5,11 +5,13 @@ import secrets
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy.orm import Mapped, mapped_column
+from pydantic import ValidationError
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
-from app.auth.constants import VerificationUsage
+from app.auth.constants import ErrorEnum, VerificationUsage
 from app.core.config import config
 from app.core.db import Model, TimestampMixin
+from app.core.utils import is_valid_email
 
 
 class RefreshToken(Model, TimestampMixin):
@@ -108,3 +110,9 @@ class EmailVerification(Model, TimestampMixin):
     @property
     def is_valid(self):
         return not self.is_expired and not self.is_revoked
+
+    @validates("email")
+    def validate_email(self, key: str, email: str):
+        if not is_valid_email(email):
+            raise ValidationError(ErrorEnum.INVALID_EMAIL)
+        return email

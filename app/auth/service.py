@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.dto import SignupStatus
 from app.auth.models import EmailVerification, RefreshToken
+from app.core.config import config
+from app.core.email import EmailBackendBase
 from app.core.errors import NotFoundError, ValidationError
 from app.user.models import User
 
@@ -140,3 +142,40 @@ class AuthService:
         has_password = user is not None and user.hashed_password is not None
 
         return SignupStatus(has_account=has_account, has_password=has_password)
+
+    async def send_signup_email(self, email_backend: EmailBackendBase, email: str):
+        """
+        Send a sign up email to the user.
+
+        Args:
+            email_backend: The email backend to use.
+            email: The user's email address.
+
+        Returns:
+            The state of the email verification.
+        """
+        prev_verifications = await self.session.scalars(
+            sa.select(EmailVerification).where(
+                EmailVerification.email == email,
+                EmailVerification.is_revoked.is_(False),
+                EmailVerification.expires_at > datetime.datetime.now(datetime.UTC),
+            )
+        )
+
+        for each in prev_verifications:
+            each.is_revoked = True
+
+        verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
+        self.session.add(verification)
+
+        await self.session.commit()
+
+        subject = f"Your signup code is {verification.code}"
+        body_plain = f"""Copy and paste this temporary signup code: {verification.code}
+
+If you didn't try to signup, you can safely ignore this email."""
+        await email_backend.send(
+            sender=config.email_sender, recipients=[email], subject=subject, body_plain=body_plain
+        )
+
+        return verification.state

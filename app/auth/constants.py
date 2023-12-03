@@ -30,6 +30,7 @@ class ErrorEnum(BaseErrorEnum):
         "INVALID_VERIFICATION_CODE",
         "Provided verification code is invalid.",
     )
+    INVALID_EMAIL = ("INVALID_EMAIL", "Provided email is invalid.")
 
 
 class VerificationUsage(StrEnum):

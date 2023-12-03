@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import PostgresDsn
+from pydantic import EmailStr, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import DAY, MINUTE
@@ -20,6 +20,7 @@ class Config(BaseSettings):
     refresh_token_stale_seconds: int = 7 * DAY  # Refresh token renewed if older than this
     email_verificaton_token_expires_seconds: int = 30 * MINUTE
     email_verification_code_length: int = 8
+    email_sender: EmailStr
 
     model_config = SettingsConfigDict(env_file=".env")
 
