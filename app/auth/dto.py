@@ -54,3 +54,9 @@ class SignupStatus(BaseModel):
     has_password: bool = Field(
         description="Whether a specified email has password or not", examples=[True]
     )
+
+
+class SendSignupEmailResponse(BaseModel):
+    state: str = Field(
+        description="State to prevent csrf and replay attacks", examples=["xxxxxxxxxxxx"]
+    )

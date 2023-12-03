@@ -1,6 +1,7 @@
 import datetime
 import secrets
 from typing import cast
+from unittest.mock import ANY
 
 import sqlalchemy as sa
 from httpx import AsyncClient
@@ -157,4 +158,16 @@ async def test_signup_status(client: AsyncClient, session: AsyncSession):
     assert response.json() == {
         "has_account": True,
         "has_password": False,
+    }
+
+
+async def test_send_signup_email(client: AsyncClient, session: AsyncSession):
+    """Test send signup email"""
+    # when
+    response = await client.post("/auth/send-signup-email", json={"email": "test@test.com"})
+
+    # then
+    assert response.status_code == 200
+    assert response.json() == {
+        "state": ANY,
     }

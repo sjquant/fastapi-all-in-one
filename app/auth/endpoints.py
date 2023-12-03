@@ -10,6 +10,7 @@ from app.auth.constants import ErrorEnum
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
+    SendSignupEmailResponse,
     SignInEmailSchema,
     SignInResponse,
     SignUpEmailSchema,
@@ -94,6 +95,11 @@ async def refresh_token(
     access_token = generate_access_token(refresh_token_model.user_id)
 
     return AccessTokenResponse(access_token=access_token)
+
+
+@router.post("/send-signup-email")
+async def send_signup_email(session: SessionDep, email: EmailStr = Body(..., embed=True)):
+    return SendSignupEmailResponse(state="xxxxxxxxxxxx")
 
 
 def generate_access_token(user_id: UUID):
