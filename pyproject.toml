@@ -49,6 +49,7 @@ preview = true
 
 [tool.pyright]
 exclude = ["alembic/*"]
+typeCheckingMode = "strict"
 
 [build-system]
 requires = ["poetry-core"]
