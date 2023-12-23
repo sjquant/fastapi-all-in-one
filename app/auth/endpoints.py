@@ -118,3 +118,12 @@ def generate_access_token(user_id: UUID):
     }
 
     return jwt.encode(payload, config.jwt_secret_key, algorithm=config.jwt_algorithm)
+
+
+@router.post("/sign-in/{provider}")
+async def sign_in_by_provider(
+    response: Response,
+    session: SessionDep,
+    provider: str,
+    code: str = Body(..., embed=True),
+): ...
