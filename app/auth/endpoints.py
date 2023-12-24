@@ -2,11 +2,12 @@ import datetime
 from typing import Annotated
 from uuid import UUID
 
+import jwt
 from fastapi import APIRouter, Body, Cookie, Response
-from jose import jwt
 from pydantic import EmailStr
 
 from app.auth.constants import ErrorEnum
+from app.auth.deps import OAuth2ProviderDep
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,

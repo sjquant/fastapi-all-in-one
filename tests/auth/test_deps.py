@@ -1,9 +1,9 @@
 import uuid
 
+import jwt
 import pytest
 import pytest_mock
 from fastapi.security import HTTPAuthorizationCredentials
-from jose import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum
