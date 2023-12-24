@@ -1,13 +1,17 @@
+import json
 import time
 
-from jose import jwt
+import jwt
+from httpx import AsyncClient
+from jwt.algorithms import RSAAlgorithm
 from pydantic import BaseModel
 
 from app.core.oauth2.base import OAuth2Base
 
 
 class AppleUser(BaseModel):
-    name: str
+    first_name: str
+    last_name: str
     email: str
 
 
@@ -55,3 +59,31 @@ class AppleOAuth2(OAuth2Base):
         }
 
         return jwt.encode(payload, self._private_key, algorithm="ES256", headers=headers)
+
+    async def get_user_data(self, token: str):
+        kid: str = jwt.get_unverified_header(token)["kid"]
+        public_key = await self._get_public_key(kid)
+        data = jwt.decode(
+            token,
+            key=public_key,  # type: ignore
+            audience=self._client_id,
+            algorithms=["RS256"],
+        )
+        return AppleUser(
+            first_name=data["name"].get("firstName", ""),
+            last_name=data["name"].get("lastName", ""),
+            email=data["email"],
+        )
+
+    async def _get_public_key(self, kid: str):
+        client = AsyncClient()
+        res = await client.get(
+            "https://appleid.apple.com/auth/keys",
+        )
+        keys = res.json()["keys"]
+
+        return RSAAlgorithm.from_jwk(
+            json.dumps(
+                [key for key in keys if key["kid"] == kid][0],
+            )
+        )

@@ -122,9 +122,8 @@ def generate_access_token(user_id: UUID):
 
 
 @router.post("/sign-in/{provider}")
-async def sign_in_by_provider(
+async def sign_in_by_oauth2(
     response: Response,
     session: SessionDep,
-    provider: str,
-    code: str = Body(..., embed=True),
+    provider: OAuth2ProviderDep,
 ): ...

@@ -28,7 +28,7 @@ class GoogleOAuth2(OAuth2Base):
     async def get_user_data(self, token: str) -> GoogleUser:
         client = AsyncClient()
         res = await client.get(
-            "https://openidconnect.googleapis.com/v1/userinfo",
+            "https://www.googleapis.com/oauth2/v3/tokeninfo",
             headers={
                 "Authorization": f"Bearer {token}",
             },
