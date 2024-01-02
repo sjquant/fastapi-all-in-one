@@ -35,3 +35,9 @@ class ErrorEnum(BaseErrorEnum):
 
 class VerificationUsage(StrEnum):
     SIGN_UP = "SIGN_UP"
+
+
+class OAuth2Provider(StrEnum):
+    GOOGLE = "google"
+    KAKAO = "kakao"
+    APPLE = "apple"
