@@ -7,6 +7,7 @@ from fastapi import APIRouter, Body, Cookie, Response
 from pydantic import EmailStr
 
 from app.auth.constants import ErrorEnum
+from app.auth.deps import OAuth2ProviderDep
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
@@ -20,7 +21,7 @@ from app.core.config import config
 from app.core.deps import EmailBackendDep, SessionDep
 from app.core.errors import ValidationError
 
-router = APIRouter()
+router = APIRouter(tags=["auth"])
 
 
 @router.post("/sign-in/email")
@@ -121,14 +122,13 @@ def generate_access_token(user_id: UUID):
 
 
 @router.post("/oauth2/{provider}/get-authorization-url")
-async def oauth2_authorize(
-    response: Response,
-    session: SessionDep,
-): ...
+async def get_oauth2_authorization_url(
+    provider: OAuth2ProviderDep,
+):
+    return provider.get_authorization_url()
 
 
 @router.get("/oauth2/{provider}/callback")
 async def oauth2_callback(
-    response: Response,
     session: SessionDep,
 ): ...
