@@ -22,6 +22,18 @@ class Config(BaseSettings):
     email_verification_code_length: int = 8
     email_sender: EmailStr
 
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = ""
+    kakao_client_id: str = ""
+    kakao_client_secret: str = ""
+    kakao_redirect_uri: str = ""
+    apple_client_id: str = ""
+    apple_team_id: str = ""
+    apple_key_id: str = ""
+    apple_private_key: str = ""
+    apple_redirect_uri: str = ""
+
     model_config = SettingsConfigDict(env_file=".env")
 
 
