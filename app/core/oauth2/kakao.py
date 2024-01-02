@@ -18,7 +18,13 @@ class KakaoOAuth2(OAuth2Base[KakaoUser]):
     See https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#request-token
     """
 
-    def __init__(self, *, client_id: str, client_secret: str, redirect_uri: str):
+    def __init__(
+        self,
+        *,
+        client_id: str,
+        client_secret: str,
+        redirect_uri: str,
+    ):
         super().__init__(
             access_token_endpoint="https://kauth.kakao.com/oauth/token",
             authorize_endpoint="https://kauth.kakao.com/oauth/authorize",

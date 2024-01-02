@@ -36,12 +36,14 @@ class OAuth2Base(ABC, Generic[T]):
         client_id: str,
         client_secret: str,
         redirect_uri: str,
+        scopes: list[str] | None = None,
     ):
         self._client_id = client_id
         self._client_secret = client_secret
         self._redirect_uri = redirect_uri
         self._authorize_endpoint = authorize_endpoint
         self._access_token_endpoint = access_token_endpoint
+        self._scopes = scopes
 
     def get_authorization_url(
         self, state: str | None = None, extra_params: dict[str, str] = {}
@@ -63,6 +65,8 @@ class OAuth2Base(ABC, Generic[T]):
             "state": state,
             **extra_params,
         }
+        if self._scopes:
+            params["scope"] = " ".join(self._scopes)
 
         return f"{self._authorize_endpoint}?{urlencode(params)}"
 
