@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from jwt.algorithms import RSAAlgorithm
 from pydantic import BaseModel
 
-from app.core.oauth2.base import OAuth2Base
+from app.core.oauth2.base import OAuth2Base, OAuth2Token
 
 
 class AppleUser(BaseModel):
@@ -60,11 +60,11 @@ class AppleOAuth2(OAuth2Base):
 
         return jwt.encode(payload, self._private_key, algorithm="ES256", headers=headers)
 
-    async def get_user_data(self, token: str):
-        kid: str = jwt.get_unverified_header(token)["kid"]
+    async def get_user_data(self, token: OAuth2Token):
+        kid: str = jwt.get_unverified_header(token.access_token)["kid"]
         public_key = await self._get_public_key(kid)
         data = jwt.decode(
-            token,
+            token.access_token,
             key=public_key,  # type: ignore
             audience=self._client_id,
             algorithms=["RS256"],

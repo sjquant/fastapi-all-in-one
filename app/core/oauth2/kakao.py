@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 from pydantic import BaseModel
 
-from app.core.oauth2.base import OAuth2Base
+from app.core.oauth2.base import OAuth2Base, OAuth2Token
 
 
 class KakaoUser(BaseModel):
@@ -22,12 +22,12 @@ class KakaoOAuth2(OAuth2Base):
     def access_token_url(self) -> str:
         return "https://kauth.kakao.com/oauth/token"
 
-    async def get_user_data(self, token: str) -> KakaoUser:
+    async def get_user_data(self, token: OAuth2Token) -> KakaoUser:
         client = AsyncClient()
         res = await client.get(
             "https://kapi.kakao.com/v2/user/me",
             headers={
-                "Authorization": f"Bearer {token}",
+                "Authorization": f"Bearer {token.access_token}",
             },
         )
         data = res.json()

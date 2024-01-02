@@ -50,7 +50,7 @@ class OAuth2Base(ABC):
         return OAuth2Token(**res.json())
 
     @abstractmethod
-    async def get_user_data(self, token: str) -> Any:
+    async def get_user_data(self, token: OAuth2Token) -> Any:
         """
         Retrieve user data using the provided OAuth2 token.
 
