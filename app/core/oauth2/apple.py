@@ -15,7 +15,7 @@ class AppleUser(BaseModel):
     email: str
 
 
-class AppleOAuth2(OAuth2Base):
+class AppleOAuth2(OAuth2Base[AppleUser]):
     """
     See https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
     """
@@ -36,14 +36,12 @@ class AppleOAuth2(OAuth2Base):
         self._redirect_uri = redirect_uri
         self._client_secret = self._get_client_secret()
         super().__init__(
+            access_token_endpoint="https://appleid.apple.com/auth/token",
+            authorize_endpoint="https://appleid.apple.com/auth/authorize",
             client_id=client_id,
             client_secret=self._client_secret,
             redirect_uri=redirect_uri,
         )
-
-    @property
-    def access_token_url(self) -> str:
-        return "https://appleid.apple.com/auth/token"
 
     def _get_client_secret(self) -> str:
         now = int(time.time())

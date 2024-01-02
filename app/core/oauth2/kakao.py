@@ -13,14 +13,19 @@ class KakaoUser(BaseModel):
     email_verified: bool
 
 
-class KakaoOAuth2(OAuth2Base):
+class KakaoOAuth2(OAuth2Base[KakaoUser]):
     """
     See https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#request-token
     """
 
-    @property
-    def access_token_url(self) -> str:
-        return "https://kauth.kakao.com/oauth/token"
+    def __init__(self, *, client_id: str, client_secret: str, redirect_uri: str):
+        super().__init__(
+            access_token_endpoint="https://kauth.kakao.com/oauth/token",
+            authorize_endpoint="https://kauth.kakao.com/oauth/authorize",
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_uri=redirect_uri,
+        )
 
     async def get_user_data(self, token: OAuth2Token) -> KakaoUser:
         client = AsyncClient()

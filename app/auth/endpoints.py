@@ -7,7 +7,6 @@ from fastapi import APIRouter, Body, Cookie, Response
 from pydantic import EmailStr
 
 from app.auth.constants import ErrorEnum
-from app.auth.deps import OAuth2ProviderDep
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
@@ -121,9 +120,15 @@ def generate_access_token(user_id: UUID):
     return jwt.encode(payload, config.jwt_secret_key, algorithm=config.jwt_algorithm)
 
 
-@router.post("/sign-in/{provider}")
-async def sign_in_by_oauth2(
+@router.post("/oauth2/{provider}/get-authorization-url")
+async def oauth2_authorize(
     response: Response,
     session: SessionDep,
-    provider: OAuth2ProviderDep,
+): ...
+
+
+@router.get("/oauth2/{provider}/callback")
+async def oauth2_callback(
+    response: Response,
+    session: SessionDep,
 ): ...
