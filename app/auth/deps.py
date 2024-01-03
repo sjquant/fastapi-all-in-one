@@ -7,14 +7,17 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 
 from app.auth.constants import ErrorEnum, OAuth2Provider
+from app.auth.dto import OAuth2UserData
 from app.core.config import config
 from app.core.deps import SessionDep
 from app.core.errors import PermissionDenied, UnauthorizedError
-from app.core.oauth2.apple import AppleOAuth2
+from app.core.oauth2.apple import AppleOAuth2, AppleUser
 from app.core.oauth2.base import OAuth2Base
-from app.core.oauth2.google import GoogleOAuth2
-from app.core.oauth2.kakao import KakaoOAuth2
+from app.core.oauth2.google import GoogleOAuth2, GoogleUser
+from app.core.oauth2.kakao import KakaoOAuth2, KakaoUser
 from app.user.models import User
+
+UserData = GoogleUser | KakaoUser | AppleUser
 
 
 async def current_user(
@@ -89,3 +92,33 @@ def oauth_provider(provider: OAuth2Provider) -> OAuth2Base[Any]:
 
 
 OAuth2ProviderDep = Annotated[OAuth2Base[Any], Depends(oauth_provider)]
+
+
+async def oauth2_user_data(oauth_provider: OAuth2ProviderDep, code: str) -> OAuth2UserData:
+    # TODO: Verify state
+
+    token = await oauth_provider.exchange_token(code)
+    user_data: UserData = await oauth_provider.get_user_data(token)
+
+    match user_data:
+        case GoogleUser():
+            return OAuth2UserData(
+                uid=user_data.id,
+                email=user_data.email,
+                photo=user_data.picture,
+            )
+        case KakaoUser():
+            return OAuth2UserData(
+                uid=str(user_data.id),
+                email=user_data.email,
+                photo=user_data.picture,
+            )
+        case AppleUser():
+            return OAuth2UserData(
+                uid=user_data.id,
+                email=user_data.email,
+                photo=None,
+            )
+
+
+OAuth2UserDataDep = Annotated[OAuth2UserData, Depends(oauth2_user_data)]

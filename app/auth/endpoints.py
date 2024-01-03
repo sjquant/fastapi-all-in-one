@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Cookie, Response
 from pydantic import EmailStr
 
 from app.auth.constants import ErrorEnum
-from app.auth.deps import OAuth2ProviderDep
+from app.auth.deps import OAuth2ProviderDep, OAuth2UserDataDep
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
@@ -129,6 +129,10 @@ async def get_oauth2_authorization_url(
 
 
 @router.get("/oauth2/{provider}/callback")
-async def oauth2_callback(
-    session: SessionDep,
-): ...
+async def oauth2_callback(session: SessionDep, user_data: OAuth2UserDataDep):
+    """
+    - 회원가입이 되어있는 경우 로그인
+    - 회원가입이 되어있지 않은 경우 회원가입
+    - 로그인 정보를 HTML Template에서 window.opener.postMessage로 전달후 window.close()
+    """
+    ...

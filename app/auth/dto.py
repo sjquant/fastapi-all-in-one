@@ -29,6 +29,14 @@ class AuthenticatedUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OAuth2UserData(BaseModel):
+    uid: str = Field(description="Unique User ID", examples=["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"])
+    email: str = Field(description="User email", examples=["examle@example.com"])
+    photo: str | None = Field(
+        description="User photo", examples=["https://example.com/photo.jpg"], default=None
+    )
+
+
 class VerifyEmailSchema(BaseModel):
     email: str = Field(description="User email", examples=["example@example.com"])
     code: str = Field(description="Verification code", examples=["ABCD1234"])

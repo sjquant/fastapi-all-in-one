@@ -7,7 +7,7 @@ from app.core.oauth2.base import OAuth2Base, OAuth2Token
 class KakaoUser(BaseModel):
     id: int
     name: str
-    pricture: str
+    picture: str
     email: str
     email_valid: bool
     email_verified: bool
@@ -45,7 +45,7 @@ class KakaoOAuth2(OAuth2Base[KakaoUser]):
         return KakaoUser(
             id=data["id"],
             name=data["kakao_account"]["profile"]["nickname"],
-            pricture=data["kakao_account"]["profile"]["profile_image_url"],
+            picture=data["kakao_account"]["profile"]["profile_image_url"],
             email=data["kakao_account"]["email"],
             email_valid=data["kakao_account"]["is_email_valid"],
             email_verified=data["kakao_account"]["is_email_verified"],

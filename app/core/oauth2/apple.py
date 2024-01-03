@@ -10,6 +10,7 @@ from app.core.oauth2.base import OAuth2Base, OAuth2Token
 
 
 class AppleUser(BaseModel):
+    id: str
     first_name: str
     last_name: str
     email: str
@@ -68,6 +69,7 @@ class AppleOAuth2(OAuth2Base[AppleUser]):
             algorithms=["RS256"],
         )
         return AppleUser(
+            id=data["sub"],
             first_name=data["name"].get("firstName", ""),
             last_name=data["name"].get("lastName", ""),
             email=data["email"],
