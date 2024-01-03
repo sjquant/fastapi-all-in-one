@@ -8,12 +8,13 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.deps import current_user
+from app.auth.deps import current_user, oauth_provider
 from app.auth.dto import AuthenticatedUser, SignInResponse
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
 from app.core.deps import email_backend
 from app.core.email import EmailBackendBase
+from app.core.oauth2.base import OAuth2Base
 from app.main import app
 from app.user.models import User
 
@@ -182,3 +183,20 @@ async def test_send_signup_email(client: AsyncClient, session: AsyncSession):
     email_backend_mock.send.assert_called_with(  # type: ignore
         sender=config.email_sender, recipients=[recipient_email], subject=ANY, body_plain=ANY
     )
+
+
+async def test_get_authorization_url(client: AsyncClient, session: AsyncSession):
+    """Test get authorization url"""
+    # given
+    oauth_provider_mock = Mock(spec=OAuth2Base)
+    oauth_provider_mock.get_authorization_url.return_value = "https://test.com"
+    app.dependency_overrides[oauth_provider] = lambda: oauth_provider_mock
+
+    # when
+    response = await client.post("/auth/oauth2/test/get-authorization-url")
+
+    # then
+    assert response.status_code == 200
+    assert response.json() == {
+        "url": "https://test.com",
+    }

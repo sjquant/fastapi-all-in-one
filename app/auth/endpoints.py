@@ -125,7 +125,7 @@ def generate_access_token(user_id: UUID):
 async def get_oauth2_authorization_url(
     provider: OAuth2ProviderDep,
 ):
-    return provider.get_authorization_url()
+    return {"url": provider.get_authorization_url()}
 
 
 @router.get("/oauth2/{provider}/callback")
