@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.dto import SignupStatus
+from app.auth.dto import OAuth2UserData, SignupStatus
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
 from app.core.email import EmailBackendBase
@@ -183,3 +183,5 @@ If you didn't try to signup, you can safely ignore this email."""
         )
 
         return verification.state
+
+    async def handle_oauth2_flow(self, user_data: OAuth2UserData): ...

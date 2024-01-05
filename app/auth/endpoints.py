@@ -3,10 +3,12 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
-from fastapi import APIRouter, Body, Cookie, Response
+from fastapi import APIRouter, Body, Cookie, Request, Response
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import EmailStr
 
-from app.auth.constants import ErrorEnum
+from app.auth.constants import ErrorEnum, OAuth2FlowEvent
 from app.auth.deps import OAuth2ProviderDep, OAuth2UserDataDep
 from app.auth.dto import (
     AccessTokenResponse,
@@ -22,6 +24,7 @@ from app.core.deps import EmailBackendDep, SessionDep
 from app.core.errors import ValidationError
 
 router = APIRouter(tags=["auth"])
+templates = Jinja2Templates(directory="auth/templates")
 
 
 @router.post("/sign-in/email")
@@ -128,11 +131,26 @@ async def get_oauth2_authorization_url(
     return {"url": provider.get_authorization_url()}
 
 
-@router.get("/oauth2/{provider}/callback")
-async def oauth2_callback(session: SessionDep, user_data: OAuth2UserDataDep):
+@router.get("/oauth2/{provider}/callback", response_class=HTMLResponse)
+async def oauth2_callback(request: Request, session: SessionDep, user_data: OAuth2UserDataDep):
     """
     - 회원가입이 되어있는 경우 로그인
     - 회원가입이 되어있지 않은 경우 회원가입
-    - 로그인 정보를 HTML Template에서 window.opener.postMessage로 전달후 window.close()
     """
-    ...
+    AuthService(session)
+    # user, refresh_token = await auth_service.handle_oauth2_flow(user_data)
+    # access_token = generate_access_token(user.id)
+
+    response = templates.TemplateResponse(  # type: ignore
+        "oauth2flow.html",
+        context={"request": Request, "event": OAuth2FlowEvent.SUCCESS},
+    )
+    # response.set_cookie(
+    #     key="refresh_token",
+    #     value=refresh_token.token,
+    #     httponly=True,
+    #     secure=config.env == "prod",
+    #     samesite="lax",
+    # )
+
+    return response

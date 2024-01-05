@@ -41,3 +41,8 @@ class OAuth2Provider(StrEnum):
     GOOGLE = "google"
     KAKAO = "kakao"
     APPLE = "apple"
+
+
+class OAuth2FlowEvent(StrEnum):
+    SUCCESS = "SIGNIN_SUCCESS"
+    FAILURE = "SIGNIN_FAILURE"

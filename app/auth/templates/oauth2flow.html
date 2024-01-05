@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sign In</title>
+  </head>
+  <body>
+    <h1>Signing in...</h1>
+    <script>
+      const opener = window.opener;
+
+      if (!opener) {
+        window.alert('This page should be opened by the parent window.');
+        window.close();
+      }
+
+      const event = {{ event }}
+      const data = {
+        event: event,
+        token: {{ token }},
+      };
+
+      opener.postMessage(data, '*', );
+
+      window.close();
+    </script>
+  </body>
+</html>
