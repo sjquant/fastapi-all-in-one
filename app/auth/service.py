@@ -1,4 +1,6 @@
 import datetime
+import uuid
+from typing import cast
 
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
@@ -6,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.dto import OAuth2UserData, SignupStatus
-from app.auth.models import EmailVerification, RefreshToken
+from app.auth.models import EmailVerification, OAuthCredential, RefreshToken
 from app.core.config import config
 from app.core.email import EmailBackendBase
 from app.core.errors import NotFoundError, ValidationError
+from app.core.oauth2.base import OAuth2Token
 from app.user.models import User
 
 
@@ -34,7 +37,6 @@ class AuthService:
                 raise ValidationError(ErrorEnum.USER_ALREADY_EXISTS)
             raise e
 
-        user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
         refresh_token = RefreshToken.from_user_id(user.id)
         self.session.add(refresh_token)
         await self.session.commit()
@@ -184,4 +186,77 @@ If you didn't try to signup, you can safely ignore this email."""
 
         return verification.state
 
-    async def handle_oauth2_flow(self, user_data: OAuth2UserData): ...
+    async def handle_oauth2_flow(
+        self, provider: str, token: OAuth2Token, user_data: OAuth2UserData
+    ):
+        cred = await self.session.scalar(
+            sa.select(OAuthCredential).where(
+                OAuthCredential.provider == provider,
+                OAuthCredential.uid == user_data.uid,
+            )
+        )
+        user, is_new_user = await self._get_or_create_user_by_oauth_cred(cred, user_data)
+        cred = await self._update_or_create_oauth_cred(
+            cred=cred, provider=provider, user=user, token=token, uid=user_data.uid
+        )
+        refresh_token = RefreshToken.from_user_id(user.id)
+        self.session.add(refresh_token)
+        await self.session.commit()
+
+        return user, refresh_token, is_new_user
+
+    async def _get_or_create_user_by_oauth_cred(
+        self, cred: OAuthCredential | None, user_data: OAuth2UserData
+    ):
+        is_new_user = False
+        if cred is None:
+            user = await self.session.scalar(sa.select(User).where(User.email == user_data.email))
+            if user is None:
+                user = User(
+                    email=user_data.email,
+                    photo=user_data.photo,
+                    nickname=uuid.uuid4().hex[:12],  # TODO: Generate random nickname
+                )
+                self.session.add(user)
+                is_new_user = True
+            else:
+                user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
+        else:
+            user = cast(
+                User, await self.session.scalar(sa.select(User).where(User.id == cred.user_id))
+            )
+            user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
+        return user, is_new_user
+
+    async def _update_or_create_oauth_cred(
+        self,
+        *,
+        cred: OAuthCredential | None,
+        provider: str,
+        user: User,
+        uid: str,
+        token: OAuth2Token,
+    ):
+        if cred is None:
+            cred = OAuthCredential(
+                provider=provider,
+                uid=uid,
+                user_id=user.id,
+                access_token=token.access_token,
+                refresh_token=token.refresh_token,
+                expires_at=(
+                    datetime.datetime.fromtimestamp(token.expires_at, tz=datetime.UTC)
+                    if token.expires_at
+                    else None
+                ),
+            )
+            self.session.add(cred)
+        else:
+            cred.access_token = token.access_token
+            cred.refresh_token = token.refresh_token
+            cred.expires_at = (
+                datetime.datetime.fromtimestamp(token.expires_at, tz=datetime.UTC)
+                if token.expires_at
+                else None
+            )
+        return cred
