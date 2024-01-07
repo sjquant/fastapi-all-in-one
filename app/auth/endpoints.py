@@ -126,31 +126,40 @@ def generate_access_token(user_id: UUID):
 
 @router.post("/oauth2/{provider}/get-authorization-url")
 async def get_oauth2_authorization_url(
-    provider: OAuth2ProviderDep,
+    oauth_provider: OAuth2ProviderDep,
 ):
-    return {"url": provider.get_authorization_url()}
+    return {"url": oauth_provider.get_authorization_url()}
 
 
 @router.get("/oauth2/{provider}/callback", response_class=HTMLResponse)
-async def oauth2_callback(request: Request, session: SessionDep, user_data: OAuth2UserDataDep):
+async def oauth2_callback(
+    request: Request,
+    provider: str,
+    oauth_provider: OAuth2ProviderDep,
+    session: SessionDep,
+    user_data: OAuth2UserDataDep,
+):
     """
     - 회원가입이 되어있는 경우 로그인
     - 회원가입이 되어있지 않은 경우 회원가입
     """
-    AuthService(session)
-    # user, refresh_token = await auth_service.handle_oauth2_flow(user_data)
-    # access_token = generate_access_token(user.id)
+    auth_service = AuthService(session)
+    token = await oauth_provider.exchange_token(request.query_params["code"])
+    user, refresh_token, is_new_user = await auth_service.handle_oauth2_flow(
+        provider, token, user_data
+    )
+    generate_access_token(user.id)
 
     response = templates.TemplateResponse(  # type: ignore
         "oauth2flow.html",
-        context={"request": Request, "event": OAuth2FlowEvent.SUCCESS},
+        context={"request": Request, "event": OAuth2FlowEvent.SUCCESS, "is_new_user": is_new_user},
     )
-    # response.set_cookie(
-    #     key="refresh_token",
-    #     value=refresh_token.token,
-    #     httponly=True,
-    #     secure=config.env == "prod",
-    #     samesite="lax",
-    # )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token.token,
+        httponly=True,
+        secure=config.env == "prod",
+        samesite="lax",
+    )
 
     return response
