@@ -116,3 +116,16 @@ class EmailVerification(Model, TimestampMixin):
         if not is_valid_email(email):
             raise ValidationError(ErrorEnum.INVALID_EMAIL)
         return email
+
+
+class OAuthCredential(Model, TimestampMixin):
+    __tablename__ = "auth__oauth_credentials"
+
+    provider: Mapped[str] = mapped_column(sa.String, nullable=False)
+    access_token: Mapped[str] = mapped_column(sa.String, nullable=False)
+    refresh_token: Mapped[str | None] = mapped_column(sa.String, nullable=True)
+    expires_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True
+    )
+    uid: Mapped[str] = mapped_column(sa.String, nullable=False)  # Unique ID from OAuth provider
+    user_id: Mapped[UUID] = mapped_column(sa.ForeignKey("user__users.id"), nullable=False)
