@@ -13,13 +13,14 @@
         window.close();
       }
 
-      const event = {{ event }}
       const data = {
-        event: event,
-        token: {{ token }},
+        event: {{ event }},
+        token: "{{ access_token }}",
+        userId: "{{ user_id }}",
+        isNewUser: {{ is_new_user | lower }},
       };
 
-      opener.postMessage(data, '*', );
+      opener.postMessage(data, '*');
 
       window.close();
     </script>

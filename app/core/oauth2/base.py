@@ -88,7 +88,7 @@ class OAuth2Base(ABC, Generic[T]):
                 "code": code,
             },
         )
-        return OAuth2Token(**res.json())
+        return OAuth2Token.model_validate(res.json())
 
     @abstractmethod
     async def get_user_data(self, token: OAuth2Token) -> T:
