@@ -189,6 +189,18 @@ If you didn't try to signup, you can safely ignore this email."""
     async def handle_oauth2_flow(
         self, provider: str, token: OAuth2Token, user_data: OAuth2UserData
     ):
+        """
+        Handles the OAuth2 flow for the specified provider.
+
+        Args:
+            provider: The OAuth2 provider.
+            token: The OAuth2 token.
+            user_data: The user data obtained from the OAuth2 provider.
+
+        Returns:
+            A tuple containing the user object, refresh token,
+            and a flag indicating if the user is new.
+        """
         cred = await self.session.scalar(
             sa.select(OAuthCredential).where(
                 OAuthCredential.provider == provider,

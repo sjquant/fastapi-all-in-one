@@ -7,12 +7,13 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.dto import SignupStatus
-from app.auth.models import EmailVerification
+from app.auth.dto import OAuth2UserData, SignupStatus
+from app.auth.models import EmailVerification, OAuthCredential
 from app.auth.service import AuthService
 from app.core.config import config
 from app.core.email import EmailBackendBase
 from app.core.errors import NotFoundError, ValidationError
+from app.core.oauth2.base import OAuth2Token
 from app.user.models import User
 
 
@@ -69,13 +70,7 @@ async def test_cannot_sign_up_by_duplicate_nickname(session: AsyncSession):
     verification = EmailVerification.random(email=email, usage=VerificationUsage.SIGN_UP)
     session.add(verification)
     await session.flush()
-
-    user = User(
-        email="test2@test.com",
-        nickname="testuser",
-    )
-    session.add(user)
-    await session.flush()
+    await create_user(session, nickname="testuser")
 
     # when & then
     service = AuthService(session)
@@ -91,21 +86,11 @@ async def test_cannot_sign_up_by_duplicate_nickname(session: AsyncSession):
 async def test_sign_in_by_email(session: AsyncSession):
     """Sign in by email works"""
     # given
+    user = await create_user(session, nickname="testuser", password="password123!")
     service = AuthService(session)
 
-    email = "test@test.com"
-    nickname = "testuser"
-    password = "password123!"
-    user = User(
-        email=email,
-        nickname=nickname,
-    )
-    user.set_password(password)
-    session.add(user)
-    await session.flush()
-
     # when
-    user, token = await service.sign_in_by_email(email, password)
+    user, token = await service.sign_in_by_email(user.email, "password123!")
 
     # then
     actual = await session.get(User, user.id)
@@ -116,21 +101,12 @@ async def test_sign_in_by_email(session: AsyncSession):
 async def test_cannot_sign_in_by_email_with_wrong_password(session: AsyncSession):
     """Cannot sign in by email with wrong password"""
     # given
+    user = await create_user(session, nickname="testuser", password="password123!")
     service = AuthService(session)
-    email = "test@test.com"
-    nickname = "testuser"
-    password = "password123!"
-    user = User(
-        email=email,
-        nickname=nickname,
-    )
-    user.set_password(password)
-    session.add(user)
-    await session.flush()
 
     # when & then
     with pytest.raises(ValidationError) as e:
-        await service.sign_in_by_email(email, "wrongpassword123!")
+        await service.sign_in_by_email(user.email, "wrongpassword123!")
 
     assert e.value.error_code == ErrorEnum.PASSWORD_DOES_NOT_MATCH.code
     assert e.value.message == ErrorEnum.PASSWORD_DOES_NOT_MATCH.message
@@ -297,17 +273,11 @@ async def test_cannot_verify_email_with_different_state(session: AsyncSession):
 async def test_signup_status(session: AsyncSession):
     """Signup status with no password works"""
     # given
-    email = "test@test.com"
-    user = User(
-        email=email,
-        nickname="testuser",
-    )
-    session.add(user)
-    await session.flush()
+    user = await create_user(session, nickname="testuser", password=None)
 
     # when
     service = AuthService(session)
-    res = await service.get_signup_status(email)
+    res = await service.get_signup_status(user.email)
 
     # then
     assert res == SignupStatus(has_account=True, has_password=False)
@@ -316,18 +286,11 @@ async def test_signup_status(session: AsyncSession):
 async def test_signup_status_with_password(session: AsyncSession):
     """Signup status with password works"""
     # given
-    email = "test@test.com"
-    user = User(
-        email=email,
-        nickname="testuser",
-    )
-    user.set_password("password123!")
-    session.add(user)
-    await session.flush()
+    user = await create_user(session, nickname="testuser", password="password123!")
 
     # when
     service = AuthService(session)
-    res = await service.get_signup_status(email)
+    res = await service.get_signup_status(user.email)
 
     # then
     assert res == SignupStatus(has_account=True, has_password=True)
@@ -407,3 +370,121 @@ async def test_send_signup_email_with_existing_verification(session: AsyncSessio
         )
     )
     assert new_verification != old_verification
+
+
+async def test_handle_oauth2_when_cred_exists(session: AsyncSession):
+    """OAuth2 handle works when credential exists"""
+    # given
+    user = await create_user(session, nickname="testuser")
+    uid = "test_uid"
+    cred = OAuthCredential(
+        provider="test_provider",
+        uid=uid,
+        access_token="test_access_token",
+        refresh_token="test_refresh_token",
+        user_id=user.id,
+    )
+    session.add(cred)
+    await session.flush()
+
+    provider = "test_provider"
+    token = OAuth2Token.model_validate(
+        {
+            "access_token": "test_access_token",
+            "token_type": "test_token_type",
+            "expires_in": 3600,
+            "refresh_token": "test_refresh_token",
+            "scope": "test_scope",
+        }
+    )
+    user_data = OAuth2UserData(uid=uid, email=user.email, photo="test_photo")
+    service = AuthService(session)
+
+    # when
+    actual_user, refresh_token, is_new_user = await service.handle_oauth2_flow(
+        provider, token, user_data
+    )
+
+    # then
+    assert actual_user == user
+    assert refresh_token is not None
+    assert is_new_user is False
+
+
+async def test_handle_oauth2_when_cred_and_user_does_not_exist(session: AsyncSession):
+    """New user and cred is created when credential and user does not exist"""
+    # given
+    provider = "test_provider"
+    token = OAuth2Token.model_validate(
+        {
+            "access_token": "test_access_token",
+            "token_type": "test_token_type",
+            "expires_in": 3600,
+            "refresh_token": "test_refresh_token",
+            "scope": "test_scope",
+        }
+    )
+    user_data = OAuth2UserData(uid="test_uid", email="testuser@test.com", photo="test_photo")
+    service = AuthService(session)
+
+    # when
+    actual_user, refresh_token, is_new_user = await service.handle_oauth2_flow(
+        provider, token, user_data
+    )
+
+    # then
+    assert refresh_token is not None
+    assert is_new_user is True
+
+    expected_user = await session.scalar(sa.select(User).where(User.email == user_data.email))
+    assert actual_user == expected_user
+
+
+async def test_handle_oauth2_when_cred_does_not_exist_but_user_exists(session: AsyncSession):
+    """New credential is created when credential does not exist but user exists"""
+    # given
+    user = await create_user(session, nickname="testuser")
+    provider = "test_provider"
+    token = OAuth2Token.model_validate(
+        {
+            "access_token": "test_access_token",
+            "token_type": "test_token_type",
+            "expires_in": 3600,
+            "refresh_token": "test_refresh_token",
+            "scope": "test_scope",
+        }
+    )
+    user_data = OAuth2UserData(uid="test_uid", email=user.email, photo="test_photo")
+    service = AuthService(session)
+
+    # when
+    actual_user, refresh_token, is_new_user = await service.handle_oauth2_flow(
+        provider, token, user_data
+    )
+
+    # then
+    assert actual_user == user
+    assert refresh_token is not None
+    assert is_new_user is False
+
+    expected_cred = await session.scalar(
+        sa.select(OAuthCredential).where(
+            OAuthCredential.provider == provider, OAuthCredential.user_id == user.id
+        )
+    )
+
+    assert expected_cred is not None
+
+
+async def create_user(
+    session: AsyncSession, *, nickname: str, password: str | None = "password123!"
+):
+    user = User(
+        email=f"{nickname}@test.com",
+        nickname=nickname,
+    )
+    if password is not None:
+        user.set_password(password)
+    session.add(user)
+    await session.flush()
+    return user
