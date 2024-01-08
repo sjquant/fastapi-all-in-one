@@ -218,6 +218,7 @@ If you didn't try to signup, you can safely ignore this email."""
                     nickname=uuid.uuid4().hex[:12],  # TODO: Generate random nickname
                 )
                 self.session.add(user)
+                await self.session.flush()
                 is_new_user = True
             else:
                 user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)

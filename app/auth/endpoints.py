@@ -24,7 +24,7 @@ from app.core.deps import EmailBackendDep, SessionDep
 from app.core.errors import ValidationError
 
 router = APIRouter(tags=["auth"])
-templates = Jinja2Templates(directory="auth/templates")
+templates = Jinja2Templates(directory="app/auth/templates")
 
 
 @router.post("/sign-in/email")
@@ -140,19 +140,24 @@ async def oauth2_callback(
     user_data: OAuth2UserDataDep,
 ):
     """
-    - 회원가입이 되어있는 경우 로그인
-    - 회원가입이 되어있지 않은 경우 회원가입
+    - Log in if the user is already registered
+    - Sign up if the user is not registered
     """
     auth_service = AuthService(session)
     token = await oauth_provider.exchange_token(request.query_params["code"])
     user, refresh_token, is_new_user = await auth_service.handle_oauth2_flow(
         provider, token, user_data
     )
-    generate_access_token(user.id)
-
+    access_token = generate_access_token(user.id)
     response = templates.TemplateResponse(  # type: ignore
-        "oauth2flow.html",
-        context={"request": Request, "event": OAuth2FlowEvent.SUCCESS, "is_new_user": is_new_user},
+        "oauth2-signin.html",
+        context={
+            "request": request,
+            "event": OAuth2FlowEvent.SUCCESS,
+            "access_token": access_token,
+            "user_id": user.id,
+            "is_new_user": is_new_user,
+        },
     )
     response.set_cookie(
         key="refresh_token",

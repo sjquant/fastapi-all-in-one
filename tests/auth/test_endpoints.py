@@ -8,13 +8,13 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.deps import current_user, oauth_provider
-from app.auth.dto import AuthenticatedUser, SignInResponse
+from app.auth.deps import current_user, oauth2_user_data, oauth_provider
+from app.auth.dto import AuthenticatedUser, OAuth2UserData, SignInResponse
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
 from app.core.deps import email_backend
 from app.core.email import EmailBackendBase
-from app.core.oauth2.base import OAuth2Base
+from app.core.oauth2.base import OAuth2Base, OAuth2Token
 from app.main import app
 from app.user.models import User
 
@@ -200,3 +200,39 @@ async def test_get_authorization_url(client: AsyncClient, session: AsyncSession)
     assert response.json() == {
         "url": "https://test.com",
     }
+
+
+async def test_oauth2_callback(client: AsyncClient, session: AsyncSession):
+    """Test oauth2 callback"""
+    # given
+    oauth_provider_mock = Mock(spec=OAuth2Base)
+    oauth_provider_mock.exchange_token.return_value = OAuth2Token.model_validate(
+        {
+            "access_token": "ACCCESS_TOEKN",
+            "token_type": "bearer",
+            "expires_in": 3600,
+            "refresh_token": "TEST_TOKEN",
+            "scope": "test",
+        }
+    )
+
+    user_data = OAuth2UserData(
+        uid="test",
+        email="test@test.com",
+        photo="https://test.com",
+    )
+    app.dependency_overrides[oauth_provider] = lambda: oauth_provider_mock
+    app.dependency_overrides[oauth2_user_data] = lambda: user_data  # noqa: F821
+
+    # when
+    response = await client.get(
+        "/auth/oauth2/test/callback",
+        params={"code": "test"},
+    )
+
+    # then
+    assert response.status_code == 200
+    assert response.cookies["refresh_token"] is not None
+
+    user = await session.scalar(sa.select(User).where(User.email == user_data.email))
+    assert user is not None
