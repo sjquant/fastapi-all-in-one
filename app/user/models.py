@@ -21,7 +21,9 @@ class User(Model, TimestampMixin):
     photo: Mapped[str] = mapped_column(sa.String, nullable=False, default="")
     hashed_password: Mapped[str | None] = mapped_column(sa.String, nullable=True)
     last_logged_in: Mapped[datetime.datetime] = mapped_column(
-        sa.TIMESTAMP(timezone=True), nullable=True
+        sa.TIMESTAMP(timezone=True),
+        nullable=True,
+        default=lambda: datetime.datetime.now(tz=datetime.UTC),
     )
 
     @staticmethod
