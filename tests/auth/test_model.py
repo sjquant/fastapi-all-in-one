@@ -4,7 +4,7 @@ import uuid
 import pytest_mock
 
 from app.auth.constants import VerificationUsage
-from app.auth.models import EmailVerification, RefreshToken
+from app.auth.models import EmailVerification, OAuthState, RefreshToken
 from app.core.config import config
 from app.core.constants import DAY
 
@@ -110,3 +110,27 @@ def test_email_verification_random():
     res2 = EmailVerification.random(email="test@test.com", usage=VerificationUsage.SIGN_UP)
 
     assert res1.code != res2.code
+
+
+def test_oauth_state_random():
+    """OAuth state with random code"""
+    res1 = OAuthState.random()
+    res2 = OAuthState.random()
+
+    assert res1.state != res2.state
+
+
+def test_oauth_state_is_expired():
+    """OAuth state is expired"""
+    oauth_state = OAuthState(
+        expires_at=datetime.datetime.now(datetime.UTC) + datetime.timedelta(seconds=1)
+    )
+    assert not oauth_state.is_expired
+
+
+def test_oauth_state_is_not_expired():
+    """OAuth state is not expired"""
+    oauth_state = OAuthState(
+        expires_at=datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=1)
+    )
+    assert oauth_state.is_expired

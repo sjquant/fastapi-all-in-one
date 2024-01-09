@@ -129,3 +129,32 @@ class OAuthCredential(Model, TimestampMixin):
     )
     uid: Mapped[str] = mapped_column(sa.String, nullable=False)  # Unique ID from OAuth provider
     user_id: Mapped[UUID] = mapped_column(sa.ForeignKey("user__users.id"), nullable=False)
+
+
+class OAuthState(Model, TimestampMixin):
+    __tablename__ = "auth__oauth_states"
+
+    state: Mapped[str] = mapped_column(sa.String, nullable=False, index=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime(timezone=True), nullable=False
+    )
+
+    @classmethod
+    def random(cls) -> OAuthState:
+        """
+        Generate a random OAuthState instance.
+
+
+        Returns:
+            OAuthState: The generated OAuthState instance.
+        """
+        state = secrets.token_urlsafe(32)
+        return cls(
+            state=state,
+            expires_at=datetime.datetime.now(datetime.UTC)
+            + datetime.timedelta(seconds=config.oauth_state_expires_seconds),
+        )
+
+    @property
+    def is_expired(self):
+        return self.expires_at < datetime.datetime.now(datetime.UTC)
