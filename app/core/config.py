@@ -21,6 +21,7 @@ class Config(BaseSettings):
     email_verificaton_token_expires_seconds: int = 30 * MINUTE
     email_verification_code_length: int = 8
     email_sender: EmailStr
+    oauth_state_expires_seconds: int = 10 * MINUTE
 
     google_client_id: str = ""
     google_client_secret: str = ""
