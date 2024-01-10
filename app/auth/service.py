@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.dto import OAuth2UserData, SignupStatus
-from app.auth.models import EmailVerification, OAuthCredential, RefreshToken
+from app.auth.models import EmailVerification, OAuthCredential, OAuthState, RefreshToken
 from app.core.config import config
 from app.core.email import EmailBackendBase
 from app.core.errors import NotFoundError, PermissionDenied, ValidationError
@@ -273,3 +273,23 @@ If you didn't try to signup, you can safely ignore this email."""
                 else None
             )
         return cred
+
+    async def verify_oauth_state(self, state: str) -> None:
+        """
+        Verify the OAuth2 state.
+
+        Args:
+            state: The OAuth2 state.
+
+        Raises:
+            PermissionDenied: If the state is invalid.
+        """
+        model = await self.session.scalar(
+            sa.select(OAuthState).where(
+                OAuthState.state == state,
+                OAuthState.expires_at > datetime.datetime.now(datetime.UTC),
+            )
+        )
+
+        if model is None:
+            raise PermissionDenied(ErrorEnum.INVALID_OAUTH_STATE)

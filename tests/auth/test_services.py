@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.dto import OAuth2UserData, SignupStatus
-from app.auth.models import EmailVerification, OAuthCredential
+from app.auth.models import EmailVerification, OAuthCredential, OAuthState
 from app.auth.service import AuthService
 from app.core.config import config
 from app.core.email import EmailBackendBase
@@ -474,6 +474,35 @@ async def test_handle_oauth2_when_cred_does_not_exist_but_user_exists(session: A
     )
 
     assert expected_cred is not None
+
+
+async def test_verify_oauth_state_works(session: AsyncSession):
+    """Verify oauth state works"""
+    # given
+    oauth_state = OAuthState.random()
+    session.add(oauth_state)
+    await session.flush()
+
+    service = AuthService(session)
+
+    # when
+    res = await service.verify_oauth_state(oauth_state.state)
+
+    # then
+    assert res is None
+
+
+async def test_verify_oauth_state_raises_error_with_invalid_state(session: AsyncSession):
+    """Verify oauth state raises error with invalid state"""
+    # given
+    service = AuthService(session)
+
+    # when & then
+    with pytest.raises(PermissionDenied) as e:
+        await service.verify_oauth_state("invalidstate")
+
+    assert e.value.error_code == ErrorEnum.INVALID_OAUTH_STATE.code
+    assert e.value.message == ErrorEnum.INVALID_OAUTH_STATE.message
 
 
 async def create_user(
