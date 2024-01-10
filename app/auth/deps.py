@@ -94,9 +94,9 @@ def oauth_provider(provider: OAuth2Provider) -> OAuth2Base[Any]:
 OAuth2ProviderDep = Annotated[OAuth2Base[Any], Depends(oauth_provider)]
 
 
-async def oauth2_user_data(oauth_provider: OAuth2ProviderDep, code: str) -> OAuth2UserData:
-    # TODO: Verify state
-
+async def oauth2_user_data(
+    oauth_provider: OAuth2ProviderDep, code: str, state: str
+) -> OAuth2UserData:
     token = await oauth_provider.exchange_token(code)
     user_data: UserData = await oauth_provider.get_user_data(token)
 

@@ -12,7 +12,7 @@ from app.auth.models import EmailVerification, OAuthCredential
 from app.auth.service import AuthService
 from app.core.config import config
 from app.core.email import EmailBackendBase
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError, PermissionDenied, ValidationError
 from app.core.oauth2.base import OAuth2Token
 from app.user.models import User
 
@@ -105,7 +105,7 @@ async def test_cannot_sign_in_by_email_with_wrong_password(session: AsyncSession
     service = AuthService(session)
 
     # when & then
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.sign_in_by_email(user.email, "wrongpassword123!")
 
     assert e.value.error_code == ErrorEnum.PASSWORD_DOES_NOT_MATCH.code
@@ -131,7 +131,7 @@ async def test_cannot_renew_refresh_token_with_expired_token(session: AsyncSessi
     service = AuthService(session)
 
     # when & then
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.renew_refresh_token_if_needed("invalidtoken")
 
     assert e.value.error_code == ErrorEnum.INVALID_REFRESH_TOKEN.code
@@ -214,7 +214,7 @@ async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
 
     # when & then
     service = AuthService(session)
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.verify_email(
             email=email,
             code="invalidcode",
@@ -236,7 +236,7 @@ async def test_cannot_verify_email_with_different_email(session: AsyncSession):
 
     # when & then
     service = AuthService(session)
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.verify_email(
             email="different@test.com",
             code=verification.code,
@@ -258,7 +258,7 @@ async def test_cannot_verify_email_with_different_state(session: AsyncSession):
 
     # when & then
     service = AuthService(session)
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.verify_email(
             email=email,
             code=verification.code,
