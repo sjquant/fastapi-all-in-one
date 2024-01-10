@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.dto import OAuth2UserData, SignupStatus
-from app.auth.models import EmailVerification, OAuthCredential
+from app.auth.models import EmailVerification, OAuthCredential, OAuthState
 from app.auth.service import AuthService
 from app.core.config import config
 from app.core.email import EmailBackendBase
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError, PermissionDenied, ValidationError
 from app.core.oauth2.base import OAuth2Token
 from app.user.models import User
 
@@ -105,7 +105,7 @@ async def test_cannot_sign_in_by_email_with_wrong_password(session: AsyncSession
     service = AuthService(session)
 
     # when & then
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.sign_in_by_email(user.email, "wrongpassword123!")
 
     assert e.value.error_code == ErrorEnum.PASSWORD_DOES_NOT_MATCH.code
@@ -131,7 +131,7 @@ async def test_cannot_renew_refresh_token_with_expired_token(session: AsyncSessi
     service = AuthService(session)
 
     # when & then
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.renew_refresh_token_if_needed("invalidtoken")
 
     assert e.value.error_code == ErrorEnum.INVALID_REFRESH_TOKEN.code
@@ -214,7 +214,7 @@ async def test_cannot_verify_email_with_invalid_code(session: AsyncSession):
 
     # when & then
     service = AuthService(session)
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.verify_email(
             email=email,
             code="invalidcode",
@@ -236,7 +236,7 @@ async def test_cannot_verify_email_with_different_email(session: AsyncSession):
 
     # when & then
     service = AuthService(session)
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.verify_email(
             email="different@test.com",
             code=verification.code,
@@ -258,7 +258,7 @@ async def test_cannot_verify_email_with_different_state(session: AsyncSession):
 
     # when & then
     service = AuthService(session)
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(PermissionDenied) as e:
         await service.verify_email(
             email=email,
             code=verification.code,
@@ -474,6 +474,35 @@ async def test_handle_oauth2_when_cred_does_not_exist_but_user_exists(session: A
     )
 
     assert expected_cred is not None
+
+
+async def test_verify_oauth_state_works(session: AsyncSession):
+    """Verify oauth state works"""
+    # given
+    oauth_state = OAuthState.random()
+    session.add(oauth_state)
+    await session.flush()
+
+    service = AuthService(session)
+
+    # when
+    res = await service.verify_oauth_state(oauth_state.state)
+
+    # then
+    assert res is None
+
+
+async def test_verify_oauth_state_raises_error_with_invalid_state(session: AsyncSession):
+    """Verify oauth state raises error with invalid state"""
+    # given
+    service = AuthService(session)
+
+    # when & then
+    with pytest.raises(PermissionDenied) as e:
+        await service.verify_oauth_state("invalidstate")
+
+    assert e.value.error_code == ErrorEnum.INVALID_OAUTH_STATE.code
+    assert e.value.message == ErrorEnum.INVALID_OAUTH_STATE.message
 
 
 async def create_user(

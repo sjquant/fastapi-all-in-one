@@ -8,10 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
 from app.auth.dto import OAuth2UserData, SignupStatus
-from app.auth.models import EmailVerification, OAuthCredential, RefreshToken
+from app.auth.models import EmailVerification, OAuthCredential, OAuthState, RefreshToken
 from app.core.config import config
 from app.core.email import EmailBackendBase
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError, PermissionDenied, ValidationError
 from app.core.oauth2.base import OAuth2Token
 from app.user.models import User
 
@@ -61,7 +61,7 @@ class AuthService:
             raise NotFoundError(ErrorEnum.USER_NOT_FOUND)
 
         if not user.verify_password(password):
-            raise ValidationError(ErrorEnum.PASSWORD_DOES_NOT_MATCH)
+            raise PermissionDenied(ErrorEnum.PASSWORD_DOES_NOT_MATCH)
 
         user.last_logged_in = datetime.datetime.now(tz=datetime.UTC)
         refresh_token = RefreshToken.from_user_id(user.id)
@@ -90,7 +90,7 @@ class AuthService:
         )
 
         if old_token is None or not old_token.is_valid:
-            raise ValidationError(ErrorEnum.INVALID_REFRESH_TOKEN)
+            raise PermissionDenied(ErrorEnum.INVALID_REFRESH_TOKEN)
 
         if old_token.is_stale:
             old_token.is_revoked = True
@@ -126,7 +126,7 @@ class AuthService:
         )
 
         if verification is None or not verification.is_valid:
-            raise ValidationError(ErrorEnum.INVALID_VERIFICATION_CODE)
+            raise PermissionDenied(ErrorEnum.INVALID_VERIFICATION_CODE)
 
     async def get_signup_status(self, email: str):
         """
@@ -273,3 +273,23 @@ If you didn't try to signup, you can safely ignore this email."""
                 else None
             )
         return cred
+
+    async def verify_oauth_state(self, state: str) -> None:
+        """
+        Verify the OAuth2 state.
+
+        Args:
+            state: The OAuth2 state.
+
+        Raises:
+            PermissionDenied: If the state is invalid.
+        """
+        model = await self.session.scalar(
+            sa.select(OAuthState).where(
+                OAuthState.state == state,
+                OAuthState.expires_at > datetime.datetime.now(datetime.UTC),
+            )
+        )
+
+        if model is None:
+            raise PermissionDenied(ErrorEnum.INVALID_OAUTH_STATE)

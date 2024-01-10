@@ -8,11 +8,12 @@ from jwt import PyJWTError
 
 from app.auth.constants import ErrorEnum, OAuth2Provider
 from app.auth.dto import OAuth2UserData
+from app.auth.service import AuthService
 from app.core.config import config
 from app.core.deps import SessionDep
 from app.core.errors import PermissionDenied, UnauthorizedError
 from app.core.oauth2.apple import AppleOAuth2, AppleUser
-from app.core.oauth2.base import OAuth2Base
+from app.core.oauth2.base import OAuth2Base, OAuth2Token
 from app.core.oauth2.google import GoogleOAuth2, GoogleUser
 from app.core.oauth2.kakao import KakaoOAuth2, KakaoUser
 from app.user.models import User
@@ -94,10 +95,16 @@ def oauth_provider(provider: OAuth2Provider) -> OAuth2Base[Any]:
 OAuth2ProviderDep = Annotated[OAuth2Base[Any], Depends(oauth_provider)]
 
 
-async def oauth2_user_data(oauth_provider: OAuth2ProviderDep, code: str) -> OAuth2UserData:
-    # TODO: Verify state
+async def oauth2_token(
+    session: SessionDep, oauth_provider: OAuth2ProviderDep, code: str, state: str
+) -> OAuth2Token:
+    service = AuthService(session)
+    await service.verify_oauth_state(state)
 
-    token = await oauth_provider.exchange_token(code)
+    return await oauth_provider.exchange_token(code)
+
+
+async def oauth2_user_data(oauth_provider: OAuth2ProviderDep, token: OAuth2Token) -> OAuth2UserData:
     user_data: UserData = await oauth_provider.get_user_data(token)
 
     match user_data:
@@ -121,4 +128,5 @@ async def oauth2_user_data(oauth_provider: OAuth2ProviderDep, code: str) -> OAut
             )
 
 
+OAuth2TokenDep = Annotated[OAuth2Token, Depends(oauth2_token)]
 OAuth2UserDataDep = Annotated[OAuth2UserData, Depends(oauth2_user_data)]

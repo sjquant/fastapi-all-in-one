@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import EmailStr
 
 from app.auth.constants import ErrorEnum, OAuth2FlowEvent
-from app.auth.deps import OAuth2ProviderDep, OAuth2UserDataDep
+from app.auth.deps import OAuth2ProviderDep, OAuth2TokenDep, OAuth2UserDataDep
 from app.auth.dto import (
     AccessTokenResponse,
     AuthenticatedUser,
@@ -135,8 +135,8 @@ async def get_oauth2_authorization_url(
 async def oauth2_callback(
     request: Request,
     provider: str,
-    oauth_provider: OAuth2ProviderDep,
     session: SessionDep,
+    token: OAuth2TokenDep,
     user_data: OAuth2UserDataDep,
 ):
     """
@@ -144,7 +144,6 @@ async def oauth2_callback(
     - Sign up if the user is not registered
     """
     auth_service = AuthService(session)
-    token = await oauth_provider.exchange_token(request.query_params["code"])
     user, refresh_token, is_new_user = await auth_service.handle_oauth2_flow(
         provider, token, user_data
     )

@@ -8,7 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.constants import ErrorEnum, VerificationUsage
-from app.auth.deps import current_user, oauth2_user_data, oauth_provider
+from app.auth.deps import current_user, oauth2_token, oauth2_user_data, oauth_provider
 from app.auth.dto import AuthenticatedUser, OAuth2UserData, SignInResponse
 from app.auth.models import EmailVerification, RefreshToken
 from app.core.config import config
@@ -205,8 +205,7 @@ async def test_get_authorization_url(client: AsyncClient, session: AsyncSession)
 async def test_oauth2_callback(client: AsyncClient, session: AsyncSession):
     """Test oauth2 callback"""
     # given
-    oauth_provider_mock = Mock(spec=OAuth2Base)
-    oauth_provider_mock.exchange_token.return_value = OAuth2Token.model_validate(
+    token = OAuth2Token.model_validate(
         {
             "access_token": "ACCCESS_TOEKN",
             "token_type": "bearer",
@@ -215,19 +214,18 @@ async def test_oauth2_callback(client: AsyncClient, session: AsyncSession):
             "scope": "test",
         }
     )
-
+    app.dependency_overrides[oauth2_token] = lambda: token
     user_data = OAuth2UserData(
         uid="test",
         email="test@test.com",
         photo="https://test.com",
     )
-    app.dependency_overrides[oauth_provider] = lambda: oauth_provider_mock
-    app.dependency_overrides[oauth2_user_data] = lambda: user_data  # noqa: F821
+    app.dependency_overrides[oauth2_user_data] = lambda: user_data
 
     # when
     response = await client.get(
         "/auth/oauth2/test/callback",
-        params={"code": "test"},
+        params={"code": "test", "state": "test"},
     )
 
     # then
@@ -236,3 +234,27 @@ async def test_oauth2_callback(client: AsyncClient, session: AsyncSession):
 
     user = await session.scalar(sa.select(User).where(User.email == user_data.email))
     assert user is not None
+
+
+async def test_oauth2_callback_with_invalid_state(client: AsyncClient, session: AsyncSession):
+    """Test oauth2 callback does not work with invalid state"""
+    # given
+    user_data = OAuth2UserData(
+        uid="test",
+        email="test@test.com",
+        photo="https://test.com",
+    )
+    app.dependency_overrides[oauth2_user_data] = lambda: user_data
+
+    # when
+    response = await client.get(
+        "/auth/oauth2/kakao/callback",
+        params={"code": "test", "state": "invalid"},
+    )
+
+    # then
+    assert response.status_code == 403
+    assert response.json() == {
+        "code": ErrorEnum.INVALID_OAUTH_STATE.code,
+        "message": ErrorEnum.INVALID_OAUTH_STATE.message,
+    }

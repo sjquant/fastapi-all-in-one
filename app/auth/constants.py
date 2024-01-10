@@ -31,6 +31,7 @@ class ErrorEnum(BaseErrorEnum):
         "Provided verification code is invalid.",
     )
     INVALID_EMAIL = ("INVALID_EMAIL", "Provided email is invalid.")
+    INVALID_OAUTH_STATE = ("INVALID_OAUTH_STATE", "Provided OAuth state is invalid.")
 
 
 class VerificationUsage(StrEnum):
