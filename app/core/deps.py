@@ -1,26 +1,49 @@
+from asyncio import current_task
 from functools import cache
 from typing import Annotated
 
 from fastapi import Depends, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_scoped_session,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.core.config import config
-from app.core.db import DB
 from app.core.email import DebugEmailBackend, EmailBackendBase
-
-
-@cache
-def db():
-    return DB(str(config.db_url))
 
 
 def email_backend():
     return DebugEmailBackend()
 
 
-async def session(request: Request, db: Annotated[DB, Depends(db)]):
-    async with db.session() as session:
-        yield session
+@cache
+def engine():
+    return create_async_engine(
+        str(config.db_url),
+        echo=False,
+        pool_size=config.db_pool_size,
+        max_overflow=config.db_pool_max_overflow,
+    )
+
+
+async def session(
+    request: Request, engine: Annotated[AsyncEngine, Depends(engine)]
+) -> AsyncSession:
+    session_maker = async_scoped_session(
+        async_sessionmaker(
+            autoflush=False,
+            expire_on_commit=False,
+            class_=AsyncSession,
+            bind=engine,
+        ),
+        scopefunc=current_task,
+    )
+    session = session_maker()
+    request.state.session = session
+    return session
 
 
 SessionDep = Annotated[AsyncSession, Depends(session)]
